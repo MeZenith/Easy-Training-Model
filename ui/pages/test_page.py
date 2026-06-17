@@ -14,11 +14,6 @@ from core.error_handler import friendly_error_message
 from core.trainer import ProcessTrainer
 from utils.worker import BaseWorker
 
-# Main-thread pre-imports to avoid QThread re-import crashes
-import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer, TextIteratorStreamer
-from peft import PeftModel
-
 
 class LoadModelWorker(BaseWorker):
     """Model loading worker - imports done in main thread"""
@@ -29,6 +24,9 @@ class LoadModelWorker(BaseWorker):
         self._lora_path = lora_path
 
     def do_work(self) -> dict:
+        from transformers import AutoTokenizer, AutoModelForCausalLM
+        from peft import PeftModel
+
         self.signals.progress.emit(10, "Loading tokenizer...")
         tokenizer = AutoTokenizer.from_pretrained(self._model_path, trust_remote_code=True)
         self.signals.progress.emit(30, "Loading model weights...")
@@ -56,6 +54,10 @@ class GenerateWorker(BaseWorker):
 
     def do_work(self) -> dict:
         import time as _time
+        import traceback
+        import torch
+        from transformers import TextIteratorStreamer
+
         start_time = _time.time()
 
         try:
