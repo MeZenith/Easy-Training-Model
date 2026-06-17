@@ -1,99 +1,123 @@
 # Easy Tinking
 
-A zero-code desktop tool for fine-tuning large language models. Train your own AI model in minutes — download, prepare data, train, export, and deploy to Ollama.
+A zero-code desktop tool for fine-tuning large language models. Download, train, export, and deploy — all through a graphical interface. No Python scripting required.
 
 Built with PySide6 + PyTorch + PEFT (LoRA).
+
+## Who Is This For
+
+- **Full-stack developers** who want a custom AI coding assistant without learning ML
+- **Engineering teams** needing private, locally-deployed fine-tuned models
+- **AI beginners** looking for a visual tool to learn model fine-tuning
+- **ML engineers** who want to quickly test datasets and hyperparameters
+
+No Python knowledge required, no training scripts to write, no environment hassles.
+
+## Quick Start
+
+```bash
+# 1. Clone the repo
+git clone git@github.com:MeZenith/Easy-Training-Model.git
+cd Easy-Training-Model
+
+# 2. Install dependencies
+pip install PySide6 pyqtgraph torch transformers peft huggingface_hub safetensors accelerate bitsandbytes
+
+# 3. Launch
+python main.py
+```
+
+**Hardware requirement**: NVIDIA GPU, CUDA 12.4+, 8GB+ VRAM (3B model fp16 ~6GB)
 
 ## Features
 
 | Module | Description |
 |--------|-------------|
-| Model Manager | Download models from HuggingFace, validate, delete. 6 built-in presets |
-| Data Manager | Create datasets, import JSONL/JSON/CSV, generate identity data, validate |
-| Training | LoRA fine-tuning with isolated subprocess. Loss curve, GPU monitor, presets |
-| Export | 16-bit safetensors (LoRA merged), Ollama deployment via GGUF |
-| Chat Test | Load trained model, Alpaca-format prompting, generation params |
-| Settings | CN/EN i18n, dark/light themes, HF mirror, proxy, system info |
-
-## Quick Start
-
-```bash
-pip install PySide6 pyqtgraph torch transformers peft huggingface_hub safetensors accelerate
-
-python main.py
-```
+| Model Manager | 6 built-in presets, HuggingFace download, local import, validation, delete |
+| Data Manager | Create datasets, import JSONL/JSON/CSV, edit, validate, auto-generate identity data |
+| Training | LoRA fine-tuning with subprocess isolation, presets (quick/standard/fine), Loss curve, GPU monitor |
+| Export | 16-bit safetensors (LoRA merged), LoRA-only, HF→GGUF converter, Ollama deployment |
+| Chat Test | Load trained models, parameter sliders (Temperature/Top-P/Top-K/Rep Penalty), performance stats |
+| Settings | CN/EN i18n, dark/light themes, HF mirror, proxy, system/GPU info |
+| Logs | Real-time log viewer, level filter, keyword search, auto-scroll |
 
 ### Workflow
 
-1. Download a base model (Qwen2.5-Coder-3B recommended)
-2. Create or import training data (Alpaca format)
-3. Select model + dataset → Start training
-4. Export 16-bit model → Deploy to Ollama
-5. Chat with your model in the Test page
+```
+1. Settings → Configure workspace & HF mirror
+2. Model Manager → Download base model (Qwen2.5-Coder-3B recommended)
+3. Data Manager → Import/create training data (Alpaca JSONL format)
+4. Training → Select model + datasets + params → Start
+5. Export → 16-bit export (LoRA auto-merged) → Deploy to Ollama
+6. Chat Test → Load trained model & chat
+```
 
-## Requirements
+## Tech Stack
 
-- Python 3.10+
-- NVIDIA GPU with CUDA 12.4+ (8GB+ VRAM)
-- Windows 10/11
+| Category | Technology |
+|----------|-----------|
+| UI | PySide6 (Qt 6), pyqtgraph |
+| Deep Learning | PyTorch 2.5, Transformers 5.x, PEFT (LoRA) |
+| Training Engine | Subprocess isolation, pure PyTorch loop, AMP, gradient checkpointing |
+| Export | HuggingFace safetensors, GGUF (llama.cpp) |
+| Deployment | Ollama API |
+| i18n | Custom Signal-driven i18n system |
+| Packaging | PyInstaller |
 
-## Architecture
+### Training Architecture
 
 ```
-main.py (Qt event loop)
+main.py (Qt GUI)
   └── ProcessTrainer (QProcess)
-        └── train_worker.py (isolated subprocess)
-              ├── Load model + LoRA
-              ├── Pure PyTorch training loop
-              ├── AMP + gradient checkpointing
+        └── train_worker.py (isolated Python process)
+              ├── Load base model + LoRA adapter
+              ├── Tokenize (Alpaca format)
+              ├── AdamW + gradient accumulation + AMP + grad checkpointing
+              ├── Cosine/Linear/Constant scheduler + warmup
               └── Save weights + metadata
 ```
 
-Training runs in a subprocess to isolate CUDA initialization from the Qt event loop — avoiding `0xC0000005` crashes on Windows.
+> **Why subprocess?** On Windows + RTX 4060, importing CUDA-dependent libraries inside QThread triggers `0xC0000005` crashes. Subprocess isolation keeps the main app alive even if CUDA crashes.
 
 ## Project Structure
 
 ```
-core/          Business logic (config, model, data, training, export, ollama)
-ui/            UI components and pages
-utils/         Utilities (i18n, logging, GPU info, worker base class)
-locale/        Translation files (zh.json, en.json)
-tools/         Conversion utilities (HF → GGUF)
-res/           Application icons
-workspace/     User data (models, datasets, training outputs)
+Easy Tinking/
+├── main.py               # Entry point
+├── setup_icon.py          # Icon setup (taskbar/title/Alt+Tab)
+├── EasyTinking.spec       # PyInstaller config
+├── core/                  # Business logic
+├── ui/                    # UI components & pages
+├── utils/                 # Utilities (i18n, logging, GPU info)
+├── locale/                # Translations (zh.json / en.json)
+├── tools/                 # Conversion utilities (HF → GGUF)
+├── res/                   # App icons
+├── assess/                # QSS theme styles
+└── workspace/             # User data (git ignored)
 ```
 
 ## Known Issues
 
 ### Fixed
-| Issue | Root Cause | Solution |
-|-------|-----------|----------|
-| Training crash (0xC0000005) | CUDA DLL init in QThread | Subprocess isolation |
-| Model outputs template garbage | Alpaca format mismatch | Auto-stop on `###` markers |
-| Data import BOM error | utf-8 vs utf-8-sig on Windows | utf-8-sig encoding |
-| Model doesn't respond in chat | `_on_gen_progress` didn't write to display | Direct output + truncation |
-| Loss chart empty | No data fed to chart | Parse subprocess LOG for loss |
-| Dataset checkboxes missing | Train page didn't load data list | QListWidget with checkboxes |
-| Preset switching broken | Combo index out of sync | blockSignals + setCurrentIndex |
-| Delete button invisible | Unicode glyph not available | X + red bordered QSS |
-| Light theme log text white | Inline stylesheet overrides QSS | Removed inline style |
-| Preset questions in English | Hardcoded strings | Changed to i18n keys |
-| Sidebar collapse misaligned | 48px too narrow | 56px + icon padding |
+| Issue | Root Cause |
+|-------|-----------|
+| Training crash (0xC0000005) | CUDA DLL init in QThread → subprocess isolation |
+| Model outputs template garbage | Alpaca format mismatch → auto-stop on ### |
+| Data import BOM error | utf-8 vs Windows BOM → utf-8-sig |
+| Loss chart empty | No data feed → parse subprocess LOG |
+| Preset switching broken | Combo index out of sync → blockSignals |
+| Delete button invisible | Unicode glyph missing → X + red QSS border |
+| Log text white in light theme | Inline stylesheet override → removed |
+| Sidebar collapse misaligned | 48px too narrow → 56px + icon padding |
 
 ### Limitations
 | Limitation | Reason |
 |-----------|--------|
 | GGUF export unavailable | unsloth incompatible with PyTorch 2.5.1 |
 | Ollama safetensors import garbled | Ollama only fully supports GGUF |
-| Taskbar icon not shown | python.exe icon in dev, needs PyInstaller |
-| Window rounded corners incomplete | Frameless window needs DWM API |
-| Multi-turn chat not supported | Single-turn Alpaca format only |
+| Taskbar icon (dev mode) | python.exe icon; works after PyInstaller packaging |
+| Multi-turn chat | Single-turn Alpaca format only |
 | Single GPU only | No distributed training |
-
-### To Improve
-- Training page advanced params could use collapsible groups
-- Training result panel could show more fields (learning rate, etc.)
-- Model page path labels could be clearer
 
 ## License
 
