@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+dist/
+build/
+*.spec
+
+# Workspace - user data (models, training outputs, datasets)
+workspace/
+
+# Design assets - not code
+assess/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Virtual env
+venv/
+.venv/
+env/
+
+# Temporary files
+*.log
+*.tmp
+
+# PyInstaller
+*.manifest
