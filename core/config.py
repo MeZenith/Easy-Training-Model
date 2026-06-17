@@ -1,5 +1,6 @@
 import json
 import os
+import sys
 import threading
 from copy import deepcopy
 
@@ -73,8 +74,11 @@ class AppConfig:
         self._load()
 
     def _resolve_workspace(self) -> str:
-        """解析工作目录路径"""
-        base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        """解析工作目录路径，兼容 PyInstaller 打包"""
+        if getattr(sys, "frozen", False):
+            base = os.path.dirname(sys.executable)
+        else:
+            base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         return os.path.join(base, "workspace")
 
     def _ensure_dirs(self):

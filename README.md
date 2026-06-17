@@ -4,6 +4,21 @@
 
 基于 PySide6 + PyTorch + PEFT (LoRA) 构建。
 
+[English](README.en.md) | 中文
+
+## 界面预览
+
+| 页面 | 截图 |
+|------|------|
+| 训练中心 - 参数配置 | ![Page 1](image/Page-1.png) |
+| 训练中心 - 实时监控 | ![Page 2](image/Page-2.png) |
+| 对话测试 | ![Page 3](image/Page-3.png) |
+| 模型管理 | ![Page 4](image/Page-4.png) |
+| 数据管理 | ![Page 5](image/Page-5.png) |
+| 导出部署 | ![Page 6](image/Page-6.png) |
+| 浅色主题 | ![浅色主题](image/主题切换.png) |
+| 英文界面 | ![英文界面](image/英语切换.png) |
+
 ## 适用人群
 
 - 想拥有专属 AI 编程助手但不想学深度学习的**全栈开发者**

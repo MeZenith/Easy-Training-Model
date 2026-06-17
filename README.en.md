@@ -4,6 +4,21 @@ A zero-code desktop tool for fine-tuning large language models. Download, train,
 
 Built with PySide6 + PyTorch + PEFT (LoRA).
 
+[中文](README.md) | English
+
+## Screenshots
+
+| Page | Screenshot |
+|------|-----------|
+| Training - Config | ![Page 1](image/Page-1.png) |
+| Training - Monitor | ![Page 2](image/Page-2.png) |
+| Chat Test | ![Page 3](image/Page-3.png) |
+| Model Manager | ![Page 4](image/Page-4.png) |
+| Data Manager | ![Page 5](image/Page-5.png) |
+| Export & Deploy | ![Page 6](image/Page-6.png) |
+| Light Theme | ![Light](image/主题切换.png) |
+| English UI | ![English](image/英语切换.png) |
+
 ## Who Is This For
 
 - **Full-stack developers** who want a custom AI coding assistant without learning ML
