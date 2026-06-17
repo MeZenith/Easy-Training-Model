@@ -155,41 +155,36 @@ Ollama 部署：
 
 ## 已知问题与待修复
 
-### 待修复
+### 已修复
+| 问题 | 根因 | 方案 |
+|------|------|------|
+| 训练闪退(0xC0000005) | QThread 内 import torch/transformers 触发 CUDA DLL 初始化崩溃 | 子进程隔离 |
+| 对话模型输出模板垃圾 | 训练用 Alpaca 格式，生成时模型补全模板 | 遇到 ### 标记自动停止 |
+| 数据导入 BOM 报错 | JSONL 用 utf-8 打开 Windows BOM 文件 | 改为 utf-8-sig |
+| 对话测试模型不回答 | `_on_gen_progress` 没写聊天框 | 改为一次性输出 + 截断 |
+| Loss 图表空白 | 没人喂数据给 chart | 解析子进程 LOG 提取 loss |
+| 数据集选择框缺失 | 训练页没加载数据列表 | 添加 QListWidget 多选 |
+| 预设切换无效 | combo 索引和实际值不同步 | blockSignals + setCurrentIndex |
+| 删除按钮看不见 | Unicode 字符无字形 | 改用 X + 红色边框 QSS |
+| 浅色主题日志白色 | 日志 inline stylesheet 覆盖 QSS | 去掉 inline style |
+| 预设问题英文 | 硬编码 | 改用 i18n key |
+| 侧边栏折叠不居中 | 宽度 48px 太窄 | 改为 56px + icon padding |
 
-| 问题 | 详情 | 优先级 |
-|------|------|--------|
-| GGUF 量化 | `tools/quantize_gguf.py` 因 `gguf` 库 API 变更暂不可用，需适配 | 高 |
-| GGUF 导出（App 内） | Unsloth 不兼容 PyTorch 2.5.1+cu124，需等上游更新 | 中 |
-| 对话测试流式显示 | 当前生成完后一次性显示，无逐字输出效果 | 低 |
-| 对话测试多轮 | 只取最后一轮消息，不支持带历史的连续对话 | 低 |
-| 预设参数切换 | 预设切换时部分参数不更新（如 grad_accum） | 低 |
+### 功能限制（非 Bug）
+| 限制 | 原因 |
+|------|------|
+| GGUF 导出不可用 | unsloth 不兼容 PyTorch 2.5.1 |
+| Ollama 直接导入 safetensors 乱码 | Ollama 只完全支持 GGUF |
+| 任务栏图标不显示 | 开发期 python.exe 图标，需 PyInstaller 打包 |
+| 窗口圆角不完整 | Frameless 窗口需 DWM API |
+| 对话多轮不支持 | 当前只取最后一轮 Alpaca 格式 |
+| 单 GPU | 训练循环没用分布式框架 |
 
-### 平台限制
-
-- 训练需要 NVIDIA GPU（CUDA 12.4+），V RAM >= 8GB（3B 模型 fp16）
-- Windows 专属：`os.startfile()`、`subprocess.CREATE_NO_WINDOW`
-- Ollama 部署依赖已安装的 Ollama 客户端
-
-## 快速开始
-
-```bash
-# 安装依赖
-pip install PySide6 pyqtgraph torch transformers peft huggingface_hub accelerate safetensors bitsandbytes
-
-# 启动
-python main.py
-```
-
-### 使用流程
-
-1. 设置：配置工作目录和 HuggingFace 镜像
-2. 模型：下载底座模型（Qwen2.5-Coder-3B 推荐）
-3. 数据：创建数据集，导入 JSONL 训练数据
-4. 训练：选择模型 + 数据集 + 参数 → 开始训练
-5. 导出：16 位导出（含 LoRA 合并）
-6. 测试：加载训练好的模型进行对话
+### 待优化
+- 训练页高级参数区可加折叠分组
+- 训练结果面板可补充学习率等字段
+- 模型页"模型路径"标注可更明确
 
 ## License
 
-Apache 2.0
+Apache 2.0 — BlueCorner Studio

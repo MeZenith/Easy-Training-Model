@@ -63,12 +63,37 @@ res/           Application icons
 workspace/     User data (models, datasets, training outputs)
 ```
 
-## Known Limitations
+## Known Issues
 
-- GGUF quantization requires `llama-cpp-python` (optional)
-- Ollama deploy requires GGUF format
-- Subprocess training means no real-time weight inspection
-- Single GPU only — no distributed training support
+### Fixed
+| Issue | Root Cause | Solution |
+|-------|-----------|----------|
+| Training crash (0xC0000005) | CUDA DLL init in QThread | Subprocess isolation |
+| Model outputs template garbage | Alpaca format mismatch | Auto-stop on `###` markers |
+| Data import BOM error | utf-8 vs utf-8-sig on Windows | utf-8-sig encoding |
+| Model doesn't respond in chat | `_on_gen_progress` didn't write to display | Direct output + truncation |
+| Loss chart empty | No data fed to chart | Parse subprocess LOG for loss |
+| Dataset checkboxes missing | Train page didn't load data list | QListWidget with checkboxes |
+| Preset switching broken | Combo index out of sync | blockSignals + setCurrentIndex |
+| Delete button invisible | Unicode glyph not available | X + red bordered QSS |
+| Light theme log text white | Inline stylesheet overrides QSS | Removed inline style |
+| Preset questions in English | Hardcoded strings | Changed to i18n keys |
+| Sidebar collapse misaligned | 48px too narrow | 56px + icon padding |
+
+### Limitations
+| Limitation | Reason |
+|-----------|--------|
+| GGUF export unavailable | unsloth incompatible with PyTorch 2.5.1 |
+| Ollama safetensors import garbled | Ollama only fully supports GGUF |
+| Taskbar icon not shown | python.exe icon in dev, needs PyInstaller |
+| Window rounded corners incomplete | Frameless window needs DWM API |
+| Multi-turn chat not supported | Single-turn Alpaca format only |
+| Single GPU only | No distributed training |
+
+### To Improve
+- Training page advanced params could use collapsible groups
+- Training result panel could show more fields (learning rate, etc.)
+- Model page path labels could be clearer
 
 ## License
 
