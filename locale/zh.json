@@ -148,7 +148,7 @@
   "data.add_row": "添加行",
   "data.del_row": "删除行",
   "train.select_model": "选择基座模型",
-  "train.lora_rank": "LoRA 秩",
+  "train.lora_rank": "LoRA Rank",
   "train.lora_alpha": "LoRA Alpha",
   "train.lora_dropout": "LoRA Dropout",
   "train.epochs": "训练轮数",
