@@ -89,32 +89,152 @@ class ExportWorker(BaseWorker):
         return self._list_files(model_path)
 
     def _export_gguf(self, out_dir: str, quantization: str) -> list:
-        """导出 GGUF 格式"""
+        """导出 GGUF 格式 — 使用 gguf 库完整写入 tokenizer 元数据"""
+        from transformers import AutoModelForCausalLM, AutoTokenizer, AutoConfig
         from peft import PeftModel
-        try:
-            from unsloth import FastLanguageModel
-            model, tokenizer = FastLanguageModel.from_pretrained(
-                model_name=self._model_path,
-                load_in_4bit=False,
-            )
-            if self._lora_path and os.path.isdir(self._lora_path):
-                self.signals.log.emit("Merging LoRA for GGUF export...")
+        from gguf import GGUFWriter, TokenType
+
+        self.signals.log.emit("Loading base model for GGUF...")
+        model = AutoModelForCausalLM.from_pretrained(
+            self._model_path, trust_remote_code=True,
+            device_map="cpu", torch_dtype=torch.float16,
+        )
+        config = AutoConfig.from_pretrained(self._model_path, trust_remote_code=True)
+        tokenizer = AutoTokenizer.from_pretrained(self._model_path, trust_remote_code=True)
+
+        if self._lora_path and os.path.isdir(self._lora_path):
+            self.signals.log.emit("Merging LoRA for GGUF export...")
+            try:
                 model = PeftModel.from_pretrained(model, self._lora_path)
                 model = model.merge_and_unload()
+            except Exception as e:
+                self.signals.log.emit(f"LoRA merge failed: {e}")
 
-            gguf_path = os.path.join(out_dir, f"model-{quantization}.gguf")
-            model.save_pretrained_gguf(gguf_path, tokenizer, quantization_method=quantization)
-            return [{"name": os.path.basename(gguf_path), "path": gguf_path,
-                     "size": os.path.getsize(gguf_path) if os.path.isfile(gguf_path) else 0}]
-        except ImportError as e:
-            raise ImportError(
-                "GGUF export needs llama-cpp-python.\n\n"
-                "Install: pip install llama-cpp-python\n"
-                "Or use Ollama deploy with 16-bit safetensors instead."
-            )
-        except Exception as e:
-            logger.error(f"GGUF export failed: {e}")
-            raise
+        state_dict = model.state_dict()
+
+        # Write to temp F16 file first
+        f16_path = os.path.join(out_dir, "model-F16.gguf")
+        self._write_gguf_file(f16_path, config, tokenizer, state_dict)
+
+        if quantization == "F16":
+            final_path = os.path.join(out_dir, f"model-F16.gguf")
+            os.replace(f16_path, final_path)
+        else:
+            final_path = os.path.join(out_dir, f"model-{quantization}.gguf")
+            self._quantize_gguf_file(f16_path, final_path, quantization)
+            os.remove(f16_path)
+
+        return [{"name": os.path.basename(final_path), "path": final_path,
+                 "size": os.path.getsize(final_path) if os.path.isfile(final_path) else 0}]
+
+    @staticmethod
+    def _write_gguf_file(path: str, config, tokenizer, state_dict: dict):
+        """将 HF 模型写入完整 GGUF 文件（含 tokenizer 元数据）"""
+        from gguf import GGUFWriter, TokenType
+        import json as _json
+
+        arch = getattr(config, "model_type", "qwen2")
+        writer = GGUFWriter(path, arch)
+
+        writer.add_name(getattr(config, "_name_or_path", ""))
+        writer.add_context_length(getattr(config, "max_position_embeddings", 2048))
+        writer.add_embedding_length(config.hidden_size)
+        writer.add_block_count(config.num_hidden_layers)
+        writer.add_feed_forward_length(config.intermediate_size)
+        writer.add_head_count(config.num_attention_heads)
+        num_kv = getattr(config, "num_key_value_heads", config.num_attention_heads)
+        writer.add_head_count_kv(num_kv)
+        writer.add_rope_freq_base(getattr(config, "rope_theta", 1000000.0))
+        writer.add_layer_norm_rms_eps(getattr(config, "rms_norm_eps", 1e-6))
+        writer.add_file_type(1)
+
+        vocab = tokenizer.get_vocab()
+        vocab_size = max(vocab.values()) + 1
+        writer.add_vocab_size(vocab_size)
+
+        tokens = [""] * vocab_size
+        for tok, idx in vocab.items():
+            if 0 <= idx < vocab_size:
+                tokens[idx] = tok
+        writer.add_token_list(tokens)
+
+        writer.add_token_scores([0.0] * vocab_size)
+
+        specials = set()
+        for key in ("pad_token", "bos_token", "eos_token", "unk_token"):
+            tok = getattr(tokenizer, key, None)
+            if tok is not None:
+                specials.add(tok)
+        token_types = []
+        for tok in tokens:
+            if tok in specials or tok.startswith("<|"):
+                token_types.append(TokenType.CONTROL)
+            else:
+                token_types.append(TokenType.NORMAL)
+        writer.add_token_types(token_types)
+
+        mergeable = getattr(tokenizer, "_mergeable_ranks", None)
+        if mergeable:
+            merges = [" ".join(p) for p, _ in sorted(mergeable.items(), key=lambda x: x[1])]
+            writer.add_token_merges(merges)
+
+        writer.add_tokenizer_model("gpt2")
+
+        for attr, method in [
+            ("bos_token_id", writer.add_bos_token_id),
+            ("eos_token_id", writer.add_eos_token_id),
+            ("pad_token_id", writer.add_pad_token_id),
+            ("unk_token_id", writer.add_unk_token_id),
+        ]:
+            val = getattr(tokenizer, attr, None)
+            if val is not None:
+                method(val)
+
+        writer.add_add_bos_token(False)
+        writer.add_add_eos_token(False)
+
+        for name, tensor in state_dict.items():
+            writer.add_tensor(name, tensor.detach().cpu().float().numpy())
+
+        writer.write_header_to_file()
+        writer.write_kv_data_to_file()
+        writer.write_tensors_to_file()
+        writer.close()
+
+    @staticmethod
+    def _quantize_gguf_file(input_path: str, output_path: str, quant_type: str):
+        """GGUF 量化"""
+        from gguf import GGUFReader, GGUFWriter
+        from gguf.quants import quantize
+
+        reader = GGUFReader(input_path)
+        arch = "qwen2"
+        for field in reader.fields.values():
+            if field.name == "general.architecture":
+                arch = field.parts[-1].decode() if isinstance(field.parts[-1], bytes) else str(field.parts[-1])
+                break
+
+        writer = GGUFWriter(output_path, arch)
+        for field in reader.fields.values():
+            for i, val in enumerate(field.parts):
+                vtype = field.types[i] if i < len(field.types) else field.types[0]
+                writer.add_key_value(field.name, val, vtype)
+
+        qtype = getattr(__import__("gguf.quants", fromlist=[quant_type]), quant_type, None)
+        for tensor in reader.tensors:
+            if tensor.name.endswith("weight") and len(tensor.data.shape) >= 2 and qtype:
+                try:
+                    q_data = quantize(tensor.data, qtype)
+                    writer.add_tensor(tensor.name, q_data, raw_shape=tensor.shape)
+                except Exception:
+                    writer.add_tensor(tensor.name, tensor.data, raw_shape=tensor.shape)
+            else:
+                writer.add_tensor(tensor.name, tensor.data, raw_shape=tensor.shape)
+
+        writer.write_header_to_file()
+        writer.write_kv_data_to_file()
+        writer.write_tensors_to_file()
+        writer.close()
 
     def _export_lora_only(self, out_dir: str) -> list:
         """仅导出 LoRA 适配器"""

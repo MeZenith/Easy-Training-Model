@@ -60,15 +60,9 @@ class ExportPage(QWidget):
         format_layout = QVBoxLayout(format_group)
         self._fmt_16bit = QCheckBox(self._i18n.t("format.16bit"))
         self._fmt_q4 = QCheckBox(self._i18n.t("format.gguf_q4"))
-        self._fmt_q4.setChecked(False)
-        self._fmt_q4.setEnabled(False)
-        self._fmt_q4.setToolTip(self._i18n.t("export.gguf_missing"))
         self._fmt_q8 = QCheckBox(self._i18n.t("format.gguf_q8"))
-        self._fmt_q8.setEnabled(False)
-        self._fmt_q8.setToolTip(self._i18n.t("export.gguf_missing"))
+        self._fmt_q8.setChecked(True)
         self._fmt_f16 = QCheckBox(self._i18n.t("format.gguf_f16"))
-        self._fmt_f16.setEnabled(False)
-        self._fmt_f16.setToolTip(self._i18n.t("export.gguf_missing"))
         self._fmt_lora = QCheckBox(self._i18n.t("format.lora_only"))
         for cb in [self._fmt_16bit, self._fmt_q4, self._fmt_q8, self._fmt_f16, self._fmt_lora]:
             format_layout.addWidget(cb)
@@ -169,6 +163,23 @@ class ExportPage(QWidget):
         self._run_btn = QPushButton()
         deploy_btn_row.addWidget(self._run_btn)
         deploy_layout.addRow(deploy_btn_row)
+
+        self._wizard_label = QLabel()
+        self._wizard_label.setWordWrap(True)
+        self._wizard_label.setStyleSheet(
+            "font-family: Consolas, monospace; font-size: 11px;"
+            " color: #8b949e; padding: 8px;"
+            " background-color: rgba(255,255,255,0.03); border-radius: 4px;"
+        )
+        self._wizard_label.setText(
+            "[1] 选择已训练的 LoRA 适配器\n"
+            "[2] 勾选导出格式，输入模型名称\n"
+            "[3] 点击\"保存\"导出模型文件\n"
+            "[4] 确认下方 Ollama 状态为 [OK]\n"
+            "[5] 输入 Ollama 模型名称 → 点击\"创建 Ollama 模型\"\n"
+            "[6] 点击\"运行模型\" → 终端输入 ollama run <名称>"
+        )
+        deploy_layout.addRow("", self._wizard_label)
 
         scroll_layout.addWidget(deploy_group)
         self._deploy_group = deploy_group
