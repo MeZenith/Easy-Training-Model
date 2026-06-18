@@ -1,6 +1,7 @@
 """主题与样式管理"""
 
 import os
+import sys
 from PySide6.QtCore import QObject, Signal
 from PySide6.QtWidgets import QApplication
 
@@ -8,6 +9,8 @@ from PySide6.QtWidgets import QApplication
 def _load_qss(filename: str) -> str:
     try:
         base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        if getattr(sys, "frozen", False):
+            base = sys._MEIPASS
         path = os.path.join(base, "assess", filename)
         if os.path.isfile(path):
             with open(path, "r", encoding="utf-8") as f:
@@ -17,7 +20,43 @@ def _load_qss(filename: str) -> str:
     return ""
 
 
-_DARK_QSS = _load_qss("professional_theme.qss")
+_DARK_QSS = _load_qss("professional_theme.qss") or """
+QWidget { background:#000; color:#d4d4d4; font-family:"Segoe UI","Microsoft YaHei",sans-serif; font-size:13px; }
+QMainWindow { background:#000; border-radius:10px; }
+#titleBar { background:#0a0a0a; border-bottom:1px solid #1e1e1e; min-height:36px; }
+#titleBar QLabel { color:#c9d1d9; }
+#minBtn,#maxBtn,#closeBtn { background:transparent; color:#888; border:none; border-radius:4px; font-size:15px; min-width:32px; min-height:28px; }
+#minBtn:hover,#maxBtn:hover { background:#2a2a2a; color:#fff; }
+#closeBtn:hover { background:#e81123; color:#fff; }
+#sidebar { background:#080808; border-right:1px solid #1e1e1e; }
+#sidebarNav { background:transparent; border:none; }
+#sidebarNav::item { color:#999; padding:14px 20px; min-height:48px; border-left:3px solid transparent; font-size:18px; }
+#sidebarNav::item:hover { background:#111; color:#fff; }
+#sidebarNav::item:selected { background:#111; color:#05a595; border-left:3px solid #05a595; }
+QPushButton { background:#1a1a1a; color:#d4d4d4; border:1px solid #2a2a2a; border-radius:4px; padding:6px 16px; font-size:12px; }
+QPushButton:hover { background:#252525; }
+#primaryBtn { background:#05a595; color:#000; border-color:#05a595; font-weight:bold; }
+#primaryBtn:hover { background:#07b8a1; }
+#dangerBtn { background:#cc3333; color:#fff; }
+#dangerBtn:hover { background:#dd4444; }
+#trashBtn { background:transparent!important; border:1px solid #f85149!important; color:#f85149!important; }
+QLineEdit,QTextEdit,QSpinBox,QDoubleSpinBox { background:#0d0d0d; color:#d4d4d4; border:1px solid #2a2a2a; border-radius:4px; padding:2px 6px; }
+QLineEdit:focus,QTextEdit:focus { border:1px solid #05a595; }
+QComboBox { background:#0d0d0d; color:#d4d4d4; border:1px solid #2a2a2a; border-radius:4px; }
+QGroupBox { border:1px solid #1e1e1e; border-radius:6px; margin-top:14px; padding-top:16px; color:#888; }
+QGroupBox::title { color:#05a595; }
+QTableWidget { background:#0a0a0a; gridline-color:#1a1a1a; }
+QProgressBar { background:#111; border:none; border-radius:3px; height:6px; }
+QProgressBar::chunk { background:#05a595; border-radius:3px; }
+QScrollBar:vertical { background:transparent; width:6px; }
+QScrollBar::handle:vertical { background:#2a2a2a; border-radius:3px; }
+QStatusBar { background:#0a0a0a; color:#666; border-top:1px solid #1e1e1e; }
+QListWidget { background:#0a0a0a; border:1px solid #1e1e1e; }
+QSlider::groove:horizontal { background:#1a1a1a; border-radius:3px; height:4px; }
+QSlider::handle:horizontal { background:#05a595; width:14px; height:14px; border-radius:7px; }
+QCheckBox::indicator { border:2px solid #444; border-radius:3px; background:#0d0d0d; }
+QCheckBox::indicator:checked { background:#05a595; border-color:#05a595; }
+"""
 
 _LIGHT_OVERRIDE = """
 QWidget { background-color: #ffffff; color: #1e1e1e; }
