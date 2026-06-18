@@ -16,6 +16,7 @@ class Inferencer(QObject):
 
     loaded = Signal()
     progress = Signal(str)
+    token = Signal(str)
     result = Signal(dict)
     error = Signal(str, str)
 
@@ -77,6 +78,9 @@ class Inferencer(QObject):
 
         elif line == "LOADED:{}":
             self.loaded.emit()
+
+        elif line.startswith("TOKEN:"):
+            self.token.emit(line[6:])
 
         elif line.startswith("RESULT:"):
             try:

@@ -30,6 +30,7 @@ class TestPage(QWidget):
         self._i18n = i18n
         self._inferencer = None
         self._model_loaded = False
+        self._stream_tokens = 0
         self._messages = []
         self._setup_ui()
         self._connect_signals()
@@ -86,8 +87,8 @@ class TestPage(QWidget):
         self._preset_btns = []
         for key in PRESET_QUESTION_KEYS:
             q = self._i18n.t(key)
-            btn = QPushButton(q[:12] + ".." if len(q) > 12 else q)
-            btn.setMaximumWidth(110)
+            btn = QPushButton(q)
+            btn.setMinimumWidth(85)
             btn.clicked.connect(lambda checked, k=key: self._send_preset(self._i18n.t(k)))
             preset_row.addWidget(btn)
             self._preset_btns.append(btn)
@@ -236,6 +237,7 @@ class TestPage(QWidget):
         self._inferencer.progress.connect(
             lambda msg: self._chat_display.append(f"<i>{msg}</i>")
         )
+        self._inferencer.token.connect(self._on_infer_token)
         self._inferencer.result.connect(self._on_infer_result)
         self._inferencer.error.connect(self._on_infer_error)
         self._inferencer.start(model_path, lora_path)
@@ -248,6 +250,7 @@ class TestPage(QWidget):
 
         self._send_btn.setEnabled(False)
         self._input_edit.setEnabled(False)
+        self._stream_tokens = 0
 
         # Display user message
         self._chat_display.append(
@@ -257,11 +260,8 @@ class TestPage(QWidget):
         self._messages.append({"role": "user", "content": text})
         self._input_edit.clear()
 
-        # Display thinking placeholder
-        self._chat_display.append(
-            "<div id='thinking' style='text-align:left; color:#888; margin:8px 0;'>"
-            "<b>Assistant:</b> ...</div>"
-        )
+        # Display assistant label
+        self._chat_display.append("<b>Assistant:</b> ")
 
         # Build generation params
         try:
@@ -294,38 +294,33 @@ class TestPage(QWidget):
             f"<i>{self._i18n.t('test.model_loaded')}</i>"
         )
 
+    def _on_infer_token(self, text: str):
+        """流式追加 token 到聊天框"""
+        cursor = self._chat_display.textCursor()
+        cursor.movePosition(QTextCursor.End)
+        cursor.insertText(text)
+        self._chat_display.setTextCursor(cursor)
+        self._chat_display.ensureCursorVisible()
+        self._stream_tokens += 1
+        self._perf_text.setText(f"Streaming: ~{self._stream_tokens} tokens")
+
     def _on_infer_result(self, result: dict):
-        """Generation result from subprocess"""
+        """Generation complete"""
         self._send_btn.setEnabled(True)
         self._input_edit.setEnabled(True)
 
         text = result.get("text", "")
         error = result.get("error", "")
 
-        # Remove placeholder "..."
-        html = self._chat_display.toHtml()
-        if "...</div>" in html:
-            html = html.replace(
-                "<b>Assistant:</b> ...</div>", ""
-            )
-            self._chat_display.setHtml(html)
-            self._chat_display.moveCursor(QTextCursor.End)
-
         if error:
             self._chat_display.append(
                 f"<i style='color:red;'>Error: {error}</i>"
             )
         elif not text.strip():
-            self._chat_display.append(
-                "<div style='text-align:left; color:#888; margin:8px 0;'>"
-                "<b>Assistant:</b> (no response)</div>"
-            )
+            self._chat_display.append("(no response)")
         else:
             self._messages.append({"role": "assistant", "content": text})
-            self._chat_display.append(
-                f"<div style='text-align:left; margin:8px 0;'>"
-                f"<b>Assistant:</b> {text}</div>"
-            )
+            self._chat_display.append("")
 
         # Display performance data
         perf_lines = []
@@ -382,7 +377,7 @@ class TestPage(QWidget):
         for i, btn in enumerate(self._preset_btns):
             if i < len(PRESET_QUESTION_KEYS):
                 q = self._i18n.t(PRESET_QUESTION_KEYS[i])
-                btn.setText(q[:14] + ".." if len(q) > 14 else q)
+                btn.setText(q)
 
     def showEvent(self, event):
         super().showEvent(event)

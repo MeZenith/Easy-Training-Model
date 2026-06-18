@@ -21,6 +21,7 @@ class ProcessTrainer(QObject):
     finished = Signal(dict)
     error = Signal(str, str)
     log_message = Signal(str)
+    metric = Signal(dict)
 
     def __init__(self, workspace: str):
         super().__init__()
@@ -93,6 +94,17 @@ class ProcessTrainer(QObject):
 
         elif line.startswith("LOG:"):
             self.log_message.emit(line[4:])
+
+        elif line.startswith("METRIC:"):
+            try:
+                parts = dict(p.split("=", 1) for p in line[7:].split())
+                self.metric.emit({
+                    "step": int(parts.get("step", 0)),
+                    "loss": float(parts.get("loss", 0)),
+                    "lr": float(parts.get("lr", 0)),
+                })
+            except (ValueError, KeyError):
+                pass
 
         elif line == "DONE":
             pass

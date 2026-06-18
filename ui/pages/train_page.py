@@ -1,7 +1,6 @@
 """Training Center - Config page + Monitor page dual layout"""
 
 import os
-import re
 import logging
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
@@ -160,11 +159,18 @@ class TrainPage(QWidget):
         self._grad_accum_combo.addItems(["1", "2", "4", "8"])
         tpf.addRow(self._i18n.t("train.grad_accum") + ":", self._grad_accum_combo)
 
+        self._advanced_toggle = QPushButton("+ " + self._i18n.t("train.more_params"))
+        self._advanced_toggle.setObjectName("primaryBtn")
+        self._advanced_toggle.setMaximumHeight(28)
+        self._advanced_toggle.clicked.connect(self._toggle_advanced)
+        tpf.addRow("", self._advanced_toggle)
+
         params_row.addWidget(train_params_group)
         self._train_params_group = train_params_group
 
         more_params_group = QGroupBox()
         more_params_group.setObjectName("more_params_group")
+        more_params_group.setVisible(False)
         mpf = QFormLayout(more_params_group)
 
         self._lr_spin = QDoubleSpinBox()
@@ -331,6 +337,7 @@ class TrainPage(QWidget):
         self._trainer.finished.connect(self._on_train_finished)
         self._trainer.error.connect(self._on_train_error)
         self._trainer.log_message.connect(self._on_train_log)
+        self._trainer.metric.connect(self._on_metric)
 
     # ================ Data Loading ================
 
@@ -367,6 +374,12 @@ class TrainPage(QWidget):
         for m in manager.list_downloaded_models():
             if m["status"] == "ok":
                 self._model_combo.addItem(f"{m['name']} ({m['params']})", m["path"])
+
+    def _toggle_advanced(self):
+        visible = not self._more_params_group.isVisible()
+        self._more_params_group.setVisible(visible)
+        prefix = "- " if visible else "+ "
+        self._advanced_toggle.setText(prefix + self._i18n.t("train.more_params"))
 
     # ================ Presets ================
 
@@ -435,6 +448,14 @@ class TrainPage(QWidget):
             QMessageBox.warning(self, self._i18n.t("common.warning"), self._i18n.t("error.no_model"))
             return
 
+        self._config.set("last_train.model_path", config["model_path"])
+        self._config.set("last_train.lora_rank", config["lora_rank"])
+        self._config.set("last_train.lora_alpha", config["lora_alpha"])
+        self._config.set("last_train.epochs", config["epochs"])
+        self._config.set("last_train.batch_size", config["batch_size"])
+        self._config.set("last_train.learning_rate", config["learning_rate"])
+        self._config.set("last_train.max_seq_length", config["max_seq_length"])
+
         all_data = []
         for i in range(self._dataset_list.count()):
             item = self._dataset_list.item(i)
@@ -500,12 +521,13 @@ class TrainPage(QWidget):
 
     def _on_train_log(self, msg: str):
         logger.info(msg)
-        m = re.match(r"Step\s+(\d+)\s+loss=([\d.]+)", msg)
-        if m:
-            step = int(m.group(1))
-            loss_val = float(m.group(2))
-            self._loss_values.append(loss_val)
-            self._loss_chart.add_point(step, loss_val)
+
+    def _on_metric(self, data: dict):
+        step = data["step"]
+        loss_val = data["loss"]
+        lr_val = data.get("lr", 0)
+        self._loss_values.append(loss_val)
+        self._loss_chart.add_point(step, loss_val, lr_val)
 
     def _on_train_finished(self, result: dict):
         self._is_training = False
@@ -669,3 +691,26 @@ class TrainPage(QWidget):
         super().showEvent(event)
         self._load_models()
         self._load_datasets()
+        self._restore_last_config()
+
+    def _restore_last_config(self):
+        last = self._config.get("last_train")
+        if not last:
+            return
+        model_path = last.get("model_path", "")
+        for i in range(self._model_combo.count()):
+            if self._model_combo.itemData(i) == model_path:
+                self._model_combo.setCurrentIndex(i)
+                break
+        if last.get("lora_rank"):
+            self._lora_rank_spin.setValue(last["lora_rank"])
+        if last.get("lora_alpha"):
+            self._lora_alpha_spin.setValue(last["lora_alpha"])
+        if last.get("epochs"):
+            self._epochs_spin.setValue(last["epochs"])
+        if last.get("batch_size"):
+            self._batch_combo.setCurrentText(str(last["batch_size"]))
+        if last.get("learning_rate"):
+            self._lr_spin.setValue(last["learning_rate"])
+        if last.get("max_seq_length"):
+            self._max_seq_combo.setCurrentText(str(last["max_seq_length"]))

@@ -4,6 +4,7 @@ import sys
 import os
 import json
 import time
+import threading
 import argparse
 
 
@@ -87,36 +88,53 @@ def main():
             messages = req.get("messages", [])
             params = req.get("params", {})
 
-            query = messages[-1]["content"] if messages else ""
-            prompt = f"### Instruction:\n{query}\n### Input:\n\n### Response:\n"
+            prompt_parts = []
+            for msg in messages:
+                if msg["role"] == "user":
+                    prompt_parts.append(
+                        f"### Instruction:\n{msg['content']}\n"
+                        f"### Input:\n\n### Response:\n"
+                    )
+                elif msg["role"] == "assistant":
+                    prompt_parts.append(f"{msg['content']}\n")
+            prompt = "".join(prompt_parts)
+
             inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
             prompt_len = inputs["input_ids"].shape[1]
 
+            from transformers import TextIteratorStreamer
+            streamer = TextIteratorStreamer(
+                tokenizer, skip_prompt=True, skip_special_tokens=True
+            )
+
+            generate_kwargs = {
+                "input_ids": inputs["input_ids"],
+                "attention_mask": inputs.get("attention_mask"),
+                "max_new_tokens": params.get("max_tokens", 256),
+                "temperature": params.get("temperature", 0.7),
+                "top_p": params.get("top_p", 0.9),
+                "top_k": params.get("top_k", 50),
+                "do_sample": True,
+                "pad_token_id": tokenizer.eos_token_id,
+                "eos_token_id": tokenizer.eos_token_id,
+                "repetition_penalty": params.get("repetition_penalty", 1.1),
+                "no_repeat_ngram_size": 4,
+                "streamer": streamer,
+            }
+
             start_time = time.time()
+            gen_thread = threading.Thread(
+                target=model.generate, kwargs=generate_kwargs
+            )
+            gen_thread.start()
 
-            with torch.no_grad():
-                outputs = model.generate(
-                    inputs["input_ids"],
-                    attention_mask=inputs.get("attention_mask"),
-                    max_new_tokens=params.get("max_tokens", 256),
-                    temperature=params.get("temperature", 0.7),
-                    top_p=params.get("top_p", 0.9),
-                    top_k=params.get("top_k", 50),
-                    do_sample=True,
-                    pad_token_id=tokenizer.eos_token_id,
-                    eos_token_id=tokenizer.eos_token_id,
-                    repetition_penalty=params.get("repetition_penalty", 1.1),
-                    no_repeat_ngram_size=4,
-                )
+            generated_text = ""
+            for new_text in streamer:
+                generated_text += new_text
+                log(f"TOKEN:{new_text}")
 
+            gen_thread.join()
             gen_time = time.time() - start_time
-
-            if outputs.shape[1] > prompt_len:
-                new_ids = outputs[0][prompt_len:]
-                generated_text = tokenizer.decode(new_ids, skip_special_tokens=True)
-            else:
-                generated_text = ""
-                new_ids = torch.tensor([], dtype=torch.long)
 
             for stop_marker in ["\n###", "### Instruction", "### Input", "Human:", "# Human"]:
                 idx = generated_text.find(stop_marker)
@@ -124,7 +142,9 @@ def main():
                     generated_text = generated_text[:idx].strip()
                     break
 
-            completion_tokens = len(new_ids) if new_ids.numel() > 0 else 0
+            completion_tokens = len(tokenizer.encode(
+                generated_text, add_special_tokens=False
+            ))
             total_tokens = prompt_len + completion_tokens
             speed = completion_tokens / gen_time if gen_time > 0 else 0
 

@@ -19,39 +19,39 @@ class ModelCard(QFrame):
         self._model_path = path
         self.setObjectName("card")
         self.setCursor(Qt.PointingHandCursor)
-        self.setFixedHeight(80)
+        self.setFixedHeight(72)
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(12, 8, 12, 8)
-        layout.setSpacing(4)
+        layout.setContentsMargins(12, 6, 12, 6)
+        layout.setSpacing(2)
 
         top_row = QHBoxLayout()
         name_label = QLabel(name)
-        name_label.setStyleSheet("font-weight: bold; font-size: 14px;")
+        name_label.setStyleSheet("font-weight: bold; font-size: 13px;")
         top_row.addWidget(name_label)
         top_row.addStretch()
 
-        self._status_label = QLabel(status)
-        self._status_label.setObjectName("label-muted")
-        self._status_label.setStyleSheet("font-size: 12px;")
+        self._status_label = QLabel()
+        self._status_label.setStyleSheet("font-size: 11px;")
+        if status == "ok":
+            self._status_label.setText("[OK]")
+            self._status_label.setStyleSheet("font-size: 11px; color: #3fb950;")
+        elif status:
+            self._status_label.setText(f"[{status}]")
+            self._status_label.setStyleSheet("font-size: 11px; color: #f85149;")
         top_row.addWidget(self._status_label)
 
         layout.addLayout(top_row)
 
         bottom_row = QHBoxLayout()
-        params_label = QLabel(params)
-        params_label.setObjectName("label-secondary")
-        params_label.setStyleSheet("font-size: 12px;")
-        bottom_row.addWidget(params_label)
-
-        size_label = QLabel(size)
-        size_label.setObjectName("label-secondary")
-        size_label.setStyleSheet("font-size: 12px;")
-        bottom_row.addWidget(size_label)
+        detail_label = QLabel(f"{params}  ·  {size}")
+        detail_label.setObjectName("label-secondary")
+        detail_label.setStyleSheet("font-size: 11px;")
+        bottom_row.addWidget(detail_label)
         bottom_row.addStretch()
 
         self._delete_btn = QPushButton("X")
-        self._delete_btn.setFixedSize(24, 24)
+        self._delete_btn.setFixedSize(20, 20)
         self._delete_btn.setObjectName("trashBtn")
         self._delete_btn.clicked.connect(lambda: self.delete_requested.emit(self._model_path))
         bottom_row.addWidget(self._delete_btn)

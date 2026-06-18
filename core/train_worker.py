@@ -265,6 +265,7 @@ def main():
                     pct = min(20 + int((global_step / max(actual_steps, 1)) * 70), 90)
                     progress(pct, f"Epoch {epoch+1}/{epochs} Step {global_step} loss={avg_loss:.4f}")
                     log(f"LOG:Step {global_step} loss={avg_loss:.4f} lr={optimizer.param_groups[0]['lr']:.2e}")
+                    log(f"METRIC:loss={avg_loss:.4f} step={global_step} lr={optimizer.param_groups[0]['lr']:.2e}")
 
         epoch_avg_loss = epoch_loss / max(epoch_steps, 1)
         log(f"LOG:Epoch {epoch+1} done, avg_loss={epoch_avg_loss:.4f}")

@@ -23,20 +23,21 @@ from ui.pages.test_page import TestPage
 from ui.pages.settings_page import SettingsPage
 from ui.pages.logs_page import LogsPage
 from utils.gpu_info import get_gpu_info
+from assess.nav_icons import ICON_MAP
 
 logger = logging.getLogger("EasyTinking")
 
 
-# 导航项定义: (page_id, i18n_key, icon_text)
+# 导航项定义: (page_id, i18n_key)
 NAV_ITEMS = [
-    ("model", "nav.model", "\u25c8"),
-    ("data", "nav.data", "\u25a1"),
-    ("train", "nav.train", "\u25b6"),
-    ("export", "nav.export", "\u2913"),
-    ("test", "nav.test", "\u25c7"),
-    ("---", "", ""),
-    ("settings", "nav.settings", "\u2699"),
-    ("logs", "nav.logs", "\u2630"),
+    ("model", "nav.model"),
+    ("data", "nav.data"),
+    ("train", "nav.train"),
+    ("export", "nav.export"),
+    ("test", "nav.test"),
+    ("---", ""),
+    ("settings", "nav.settings"),
+    ("logs", "nav.logs"),
 ]
 
 
@@ -123,11 +124,14 @@ class MainWindow(QMainWindow):
         self._nav_list = QListWidget()
         self._nav_list.setObjectName("sidebarNav")
         self._nav_list.setSpacing(0)
-        for page_id, i18n_key, icon_text in NAV_ITEMS:
+        self._nav_list.setIconSize(QSize(18, 18))
+        for page_id, i18n_key in NAV_ITEMS:
             if page_id == "---":
                 continue
-            item = QListWidgetItem(f"  {icon_text}  {self._i18n.t(i18n_key)}")
+            item = QListWidgetItem(f"  {self._i18n.t(i18n_key)}")
             item.setData(Qt.UserRole, page_id)
+            if page_id in ICON_MAP:
+                item.setIcon(ICON_MAP[page_id]())
             self._nav_list.addItem(item)
         self._nav_list.currentRowChanged.connect(self._on_nav_changed)
         sidebar_layout.addWidget(self._nav_list, 1)
@@ -244,9 +248,9 @@ class MainWindow(QMainWindow):
                 item = self._nav_list.item(i)
                 if item:
                     pid = item.data(Qt.UserRole)
-                    for pi, ik, it in NAV_ITEMS:
+                    for pi, ik in NAV_ITEMS:
                         if pi == pid:
-                            item.setText(f"  {it}  {self._i18n.t(ik)}")
+                            item.setText(f"  {self._i18n.t(ik)}")
                             break
         else:
             self._sidebar.setFixedWidth(56)
@@ -254,11 +258,7 @@ class MainWindow(QMainWindow):
             for i in range(self._nav_list.count()):
                 item = self._nav_list.item(i)
                 if item:
-                    pid = item.data(Qt.UserRole)
-                    for pi, ik, it in NAV_ITEMS:
-                        if pi == pid:
-                            item.setText(f"  {it}  ")
-                            break
+                    item.setText("")
 
     def _update_statusbar(self):
         try:
@@ -278,18 +278,10 @@ class MainWindow(QMainWindow):
             item = self._nav_list.item(i)
             if item:
                 pid = item.data(Qt.UserRole)
-                icon_text = ""
-                for pi, _, it in NAV_ITEMS:
-                    if pi == pid:
-                        icon_text = it
+                for pi, ik in NAV_ITEMS:
+                    if pi == pid and ik:
+                        item.setText(f"  {self._i18n.t(ik)}")
                         break
-                i18n_key = ""
-                for pi, ik, _ in NAV_ITEMS:
-                    if pi == pid:
-                        i18n_key = ik
-                        break
-                if i18n_key:
-                    item.setText(f"  {icon_text}  {self._i18n.t(i18n_key)}")
 
     @staticmethod
     def _on_theme_changed(theme: str):
