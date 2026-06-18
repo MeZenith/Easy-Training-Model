@@ -26,9 +26,8 @@ venv/
 .venv/
 env/
 
-# Temporary files
-*.log
-*.tmp
+# Generated output
+*.pdf
 
 # PyInstaller
 *.manifest

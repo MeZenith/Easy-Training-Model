@@ -7,7 +7,7 @@ from PySide6.QtWidgets import (
     QScrollArea, QFrame, QGridLayout, QFileDialog, QMessageBox,
     QComboBox, QLineEdit, QFormLayout, QGroupBox, QListWidget,
     QListWidgetItem, QMenu, QDialog, QDialogButtonBox, QTextEdit,
-    QSizePolicy, QProgressBar
+    QSizePolicy, QProgressBar, QInputDialog
 )
 from PySide6.QtCore import Qt, Signal, QThread
 from PySide6.QtGui import QAction
@@ -62,6 +62,7 @@ class ModelPage(QWidget):
         self._i18n = i18n
         self._manager = None
         self._download_worker = None
+        self._custom_model_id = ""
         self._setup_ui()
         self._connect_signals()
         self._i18n.language_changed.connect(self._refresh_texts)
@@ -118,14 +119,10 @@ class ModelPage(QWidget):
             self._builtin_combo.addItem(f"{m['name']} ({m['params']}, ~{m['size_gb']}GB)", m["id"])
         self._builtin_combo.addItem(self._i18n.t("model.custom_id"), "custom")
         form_row.addRow(self._i18n.t("model.builtin_list"), self._builtin_combo)
-
-        self._custom_id_edit = QLineEdit()
-        self._custom_id_edit.setPlaceholderText("org/model-name")
-        self._custom_id_edit.setVisible(False)
-        form_row.addRow(self._i18n.t("model.custom_id"), self._custom_id_edit)
         download_layout.addLayout(form_row)
 
         # Download directory
+        download_layout.addWidget(QLabel(self._i18n.t("model.select_dir")))
         dir_row = QHBoxLayout()
         self._dir_edit = QLineEdit()
         self._dir_edit.setText(self._config.get("download_dir", ""))
@@ -194,9 +191,17 @@ class ModelPage(QWidget):
             self._manager = ModelManager(download_dir, hf_mirror)
 
     def _on_combo_changed(self, index):
-        """Combo box selection changed"""
         data = self._builtin_combo.currentData()
-        self._custom_id_edit.setVisible(data == "custom")
+        if data == "custom":
+            model_id, ok = QInputDialog.getText(
+                self, self._i18n.t("model.builtin_list"),
+                self._i18n.t("model.custom_id") + ":"
+            )
+            if ok and model_id.strip():
+                self._custom_model_id = model_id.strip()
+            # Switch back to first item
+            if self._builtin_combo.count() > 0:
+                self._builtin_combo.setCurrentIndex(0)
 
     def _on_browse_dir(self):
         """Select download directory"""
@@ -222,11 +227,13 @@ class ModelPage(QWidget):
 
         data = self._builtin_combo.currentData()
         if data == "custom":
-            model_id = self._custom_id_edit.text().strip()
-            if not model_id:
-                QMessageBox.warning(self, self._i18n.t("common.warning"),
-                                    self._i18n.t("model.custom_id"))
+            model_id, ok = QInputDialog.getText(
+                self, self._i18n.t("model.builtin_list"),
+                self._i18n.t("model.custom_id") + ":"
+            )
+            if not ok or not model_id.strip():
                 return
+            model_id = model_id.strip()
         else:
             model_id = data
 
@@ -376,7 +383,6 @@ class ModelPage(QWidget):
         self._download_group.setTitle(self._i18n.t("model.download"))
         self._detail_group.setTitle(self._i18n.t("model.path"))
         self._dir_browse_btn.setText(self._i18n.t("common.browse"))
-        self._custom_id_edit.setPlaceholderText(self._i18n.t("model.custom_id"))
         self._detail_text.setPlaceholderText(self._i18n.t("model.not_found"))
         self._download_btn.setText(self._i18n.t("model.download"))
 
