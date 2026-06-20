@@ -84,69 +84,76 @@ def main():
         if action == "quit":
             break
         elif action == "generate":
-            messages = req.get("messages", [])
-            params = req.get("params", {})
+            try:
+                messages = req.get("messages", [])
+                params = req.get("params", {})
 
-            prompt_parts = []
-            for msg in messages:
-                if msg["role"] == "user":
-                    prompt_parts.append(
-                        f"### Instruction:\n{msg['content']}\n"
-                        f"### Input:\n\n### Response:\n"
+                prompt_parts = []
+                for msg in messages:
+                    if msg["role"] == "user":
+                        prompt_parts.append(
+                            f"### Instruction:\n{msg['content']}\n"
+                            f"### Input:\n\n### Response:\n"
+                        )
+                    elif msg["role"] == "assistant":
+                        prompt_parts.append(f"{msg['content']}\n")
+                prompt = "".join(prompt_parts)
+
+                inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
+                prompt_len = inputs["input_ids"].shape[1]
+
+                start_time = time.time()
+
+                with torch.no_grad():
+                    outputs = model.generate(
+                        inputs["input_ids"],
+                        attention_mask=inputs.get("attention_mask"),
+                        max_new_tokens=params.get("max_tokens", 256),
+                        temperature=params.get("temperature", 0.7),
+                        top_p=params.get("top_p", 0.9),
+                        top_k=params.get("top_k", 50),
+                        do_sample=True,
+                        pad_token_id=tokenizer.eos_token_id,
+                        eos_token_id=tokenizer.eos_token_id,
+                        repetition_penalty=params.get("repetition_penalty", 1.1),
+                        no_repeat_ngram_size=4,
                     )
-                elif msg["role"] == "assistant":
-                    prompt_parts.append(f"{msg['content']}\n")
-            prompt = "".join(prompt_parts)
 
-            inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
-            prompt_len = inputs["input_ids"].shape[1]
+                gen_time = time.time() - start_time
 
-            start_time = time.time()
-
-            with torch.no_grad():
-                outputs = model.generate(
-                    inputs["input_ids"],
-                    attention_mask=inputs.get("attention_mask"),
-                    max_new_tokens=params.get("max_tokens", 256),
-                    temperature=params.get("temperature", 0.7),
-                    top_p=params.get("top_p", 0.9),
-                    top_k=params.get("top_k", 50),
-                    do_sample=True,
-                    pad_token_id=tokenizer.eos_token_id,
-                    eos_token_id=tokenizer.eos_token_id,
-                    repetition_penalty=params.get("repetition_penalty", 1.1),
-                    no_repeat_ngram_size=4,
-                )
-
-            gen_time = time.time() - start_time
-
-            if outputs.shape[1] > prompt_len:
-                new_ids = outputs[0][prompt_len:]
-                generated_text = tokenizer.decode(new_ids, skip_special_tokens=True)
-            else:
                 generated_text = ""
+                if outputs.shape[1] > prompt_len:
+                    new_ids = outputs[0][prompt_len:]
+                    log(f"LOG:first_3_new_tokens={new_ids[:3].tolist()}")
+                    generated_text = tokenizer.decode(new_ids, skip_special_tokens=True)
+                log(f"LOG:gen_tokens={outputs.shape[1] - prompt_len} prompt={prompt_len} eos={tokenizer.eos_token_id}")
 
-            for stop_marker in ["\n###", "### Instruction", "### Input", "Human:", "# Human"]:
-                idx = generated_text.find(stop_marker)
-                if idx > 0:
-                    generated_text = generated_text[:idx].strip()
-                    break
+                for stop_marker in ["\n###", "### Instruction", "### Input", "Human:", "# Human"]:
+                    idx = generated_text.find(stop_marker)
+                    if idx > 0:
+                        generated_text = generated_text[:idx].strip()
+                        break
 
-            completion_tokens = len(tokenizer.encode(
-                generated_text, add_special_tokens=False
-            ))
-            total_tokens = prompt_len + completion_tokens
-            speed = completion_tokens / gen_time if gen_time > 0 else 0
+                completion_tokens = len(tokenizer.encode(
+                    generated_text, add_special_tokens=False
+                ))
+                total_tokens = prompt_len + completion_tokens
+                speed = completion_tokens / gen_time if gen_time > 0 else 0
 
-            result = {
-                "text": generated_text,
-                "prompt_tokens": prompt_len,
-                "completion_tokens": completion_tokens,
-                "total_tokens": total_tokens,
-                "gen_time": round(gen_time, 2),
-                "gen_speed": round(speed, 1),
-            }
-            log(f"RESULT:{json.dumps(result, ensure_ascii=False)}")
+                result = {
+                    "text": generated_text,
+                    "prompt_tokens": prompt_len,
+                    "completion_tokens": completion_tokens,
+                    "total_tokens": total_tokens,
+                    "gen_time": round(gen_time, 2),
+                    "gen_speed": round(speed, 1),
+                }
+                log(f"RESULT:{json.dumps(result, ensure_ascii=False)}")
+
+            except Exception as e:
+                import traceback
+                log(f"ERROR:ERR_GEN:{e}")
+                traceback.print_exc()
 
     log("DONE")
 
