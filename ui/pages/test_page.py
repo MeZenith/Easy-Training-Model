@@ -338,6 +338,9 @@ class TestPage(QWidget):
             self._chat_display.append("(no response)")
         else:
             self._messages.append({"role": "assistant", "content": text})
+            cursor = self._chat_display.textCursor()
+            cursor.movePosition(QTextCursor.End)
+            cursor.insertText(text)
             self._chat_display.append("")
 
         # Display performance data
