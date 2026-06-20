@@ -74,6 +74,25 @@ class MainWindow(QMainWindow):
         if os.path.isfile(icon_path):
             self.setWindowIcon(QIcon(icon_path))
 
+        # Windows 11 DWM 圆角窗口
+        self._apply_round_corners()
+
+    def _apply_round_corners(self):
+        """Apply Windows 11 native rounded corners via DWM API"""
+        try:
+            import ctypes
+            DWMWA_WINDOW_CORNER_PREFERENCE = 33
+            DWMWCP_ROUND = 2
+            hwnd = int(self.winId())
+            ctypes.windll.dwmapi.DwmSetWindowAttribute(
+                hwnd,
+                DWMWA_WINDOW_CORNER_PREFERENCE,
+                ctypes.byref(ctypes.c_int(DWMWCP_ROUND)),
+                ctypes.sizeof(ctypes.c_int),
+            )
+        except Exception:
+            pass
+
     def _init_ui(self):
         central = QWidget()
         self.setCentralWidget(central)
@@ -241,7 +260,9 @@ class MainWindow(QMainWindow):
             for i in range(self._nav_list.count()):
                 item = self._nav_list.item(i)
                 if item and item.data(Qt.UserRole) == page_id:
+                    self._nav_list.blockSignals(True)
                     self._nav_list.setCurrentRow(i)
+                    self._nav_list.blockSignals(False)
                     break
             self._config.set("last_state.current_page", page_id)
 

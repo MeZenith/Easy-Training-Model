@@ -217,7 +217,7 @@
   "export.wizard_4": "确认 Ollama 状态为可用",
   "export.wizard_5": "输入模型名称 → 创建 Ollama 模型",
   "export.wizard_6": "点击运行 → 终端输入 ollama run <名称>",
-  "settings.lang_desc": "选择界面显示的语",
+  "settings.lang_desc": "选择界面的语言",
   "settings.theme_desc": "切换深色与浅色视觉模式",
   "settings.proxy_desc": "为 HuggingFace 下载设置 HTTP 或 SOCKS5 代理"
 }

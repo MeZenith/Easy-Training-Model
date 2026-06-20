@@ -49,7 +49,7 @@ class SettingsPage(QWidget):
             self._lang_combo.setCurrentIndex(idx)
         lang_form.addRow(self._i18n.t("settings.language"), self._lang_combo)
         lang_desc = QLabel(self._i18n.t("settings.lang_desc"))
-        lang_desc.setStyleSheet("color: #888; font-size: 11px; padding: 0 0 4px 0;")
+        lang_desc.setStyleSheet("color: #000000; font-size: 13px; padding: 2px 0 6px 0; font-weight: 500;")
         lang_form.addRow("", lang_desc)
         form.addWidget(lang_group)
         self._lang_group = lang_group
@@ -66,7 +66,7 @@ class SettingsPage(QWidget):
             self._theme_combo.setCurrentIndex(idx)
         theme_form.addRow(self._i18n.t("settings.theme"), self._theme_combo)
         theme_desc = QLabel(self._i18n.t("settings.theme_desc"))
-        theme_desc.setStyleSheet("color: #888; font-size: 11px; padding: 0 0 4px 0;")
+        theme_desc.setStyleSheet("color: #000000; font-size: 13px; padding: 2px 0 6px 0; font-weight: 500;")
         theme_form.addRow("", theme_desc)
         form.addWidget(theme_group)
         self._theme_group = theme_group
@@ -107,7 +107,7 @@ class SettingsPage(QWidget):
         self._proxy_socks5_edit.setPlaceholderText("socks5://127.0.0.1:7891")
         proxy_form.addRow("SOCKS5:", self._proxy_socks5_edit)
         proxy_desc = QLabel(self._i18n.t("settings.proxy_desc"))
-        proxy_desc.setStyleSheet("color: #888; font-size: 11px; padding: 0 0 4px 0;")
+        proxy_desc.setStyleSheet("color: #000000; font-size: 13px; padding: 2px 0 6px 0; font-weight: 500;")
         proxy_form.addRow("", proxy_desc)
         form.addWidget(proxy_group)
         self._proxy_group = proxy_group
