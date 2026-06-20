@@ -8,12 +8,12 @@ build/
 *.spec
 # Workspace - user data (models, training outputs, datasets)
 workspace/
-
+code-review/
 
 # IDE
 .vscode/
 .idea/
-.git
+.git/
 
 # OS
 Thumbs.db

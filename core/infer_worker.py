@@ -124,9 +124,8 @@ def main():
                 generated_text = ""
                 if outputs.shape[1] > prompt_len:
                     new_ids = outputs[0][prompt_len:]
-                    log(f"LOG:first_3_new_tokens={new_ids[:3].tolist()}")
-                    generated_text = tokenizer.decode(new_ids, skip_special_tokens=True)
-                log(f"LOG:gen_tokens={outputs.shape[1] - prompt_len} prompt={prompt_len} eos={tokenizer.eos_token_id}")
+                    generated_text = tokenizer.decode(new_ids, skip_special_tokens=False)
+                log(f"LOG:gen_tokens={outputs.shape[1] - prompt_len} prompt={prompt_len}")
 
                 for stop_marker in ["\n###", "### Instruction", "### Input", "Human:", "# Human"]:
                     idx = generated_text.find(stop_marker)
