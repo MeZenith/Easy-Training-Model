@@ -318,6 +318,6 @@ def global_exception_handler(exc_type, exc_value, exc_tb):
         if app:
             QMessageBox.critical(None, "Error", msg)
             return
-    except Exception:
-        pass
+    except Exception as ex:
+        logger.warning(f"Could not show error dialog in exception handler: {ex}")
     sys.__excepthook__(exc_type, exc_value, exc_tb)

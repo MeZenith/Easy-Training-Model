@@ -90,8 +90,8 @@ class Inferencer(QObject):
             try:
                 data = json.loads(line.split(":", 1)[1])
                 self.result.emit(data)
-            except json.JSONDecodeError:
-                pass
+            except json.JSONDecodeError as e:
+                logger.warning(f"Failed to parse inference result: {e}")
 
         elif line.startswith("ERROR:"):
             parts = line.split(":", 2)
@@ -120,8 +120,8 @@ class Inferencer(QObject):
         if self._config_path and os.path.isfile(self._config_path):
             try:
                 os.unlink(self._config_path)
-            except OSError:
-                pass
+            except OSError as e:
+                logger.warning(f"Failed to clean up temp config {self._config_path}: {e}")
 
         if exit_status == QProcess.CrashExit:
             self.error.emit("ERR_CRASH", f"Inference process crashed (exit code {exit_code})")

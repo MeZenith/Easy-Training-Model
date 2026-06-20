@@ -1,8 +1,11 @@
 import json
+import logging
 import os
 import sys
 import threading
 from copy import deepcopy
+
+logger = logging.getLogger("EasyTinking")
 
 _DEFAULT_CONFIG = {
     "language": "zh",
@@ -114,8 +117,10 @@ class AppConfig:
                 with open(self._config_path, "r", encoding="utf-8") as f:
                     saved = json.load(f)
                 self._deep_merge(self._data, saved)
-        except (json.JSONDecodeError, OSError):
-            pass
+        except json.JSONDecodeError as e:
+            logger.warning(f"Config file corrupted, using defaults: {e}")
+        except OSError as e:
+            logger.warning(f"Cannot read config file {self._config_path}: {e}")
 
     def _deep_merge(self, base, override):
         """深度合并字典，override 覆盖 base"""
@@ -137,8 +142,8 @@ class AppConfig:
                     os.replace(tmp, self._config_path)
                 else:
                     os.rename(tmp, self._config_path)
-            except OSError:
-                pass
+            except OSError as e:
+                logger.error(f"Failed to save config to {self._config_path}: {e}")
 
     def get(self, key: str, default=None):
         """获取配置值，支持点号分隔路径如 'window.width'"""

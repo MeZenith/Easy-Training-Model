@@ -7,6 +7,9 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt
 
+import logging
+logger = logging.getLogger("EasyTinking")
+
 
 class SettingsPage(QWidget):
     def __init__(self, config, i18n, parent=None):
@@ -165,7 +168,8 @@ class SettingsPage(QWidget):
             for k, v in info.items():
                 lines.append(f"{k}: {v}")
             self._sys_info_text.setPlainText("\n".join(lines))
-        except Exception:
+        except Exception as e:
+            logger.warning(f"Failed to load system info: {e}")
             self._sys_info_text.setPlainText("N/A")
 
     def _load_gpu_info(self):
@@ -186,7 +190,8 @@ class SettingsPage(QWidget):
             if not gpus:
                 lines.append("No GPU detected")
             self._gpu_info_text.setPlainText("\n".join(lines))
-        except Exception:
+        except Exception as e:
+            logger.warning(f"Failed to load GPU info: {e}")
             self._gpu_info_text.setPlainText("N/A")
 
     def _refresh_texts(self):

@@ -1,9 +1,7 @@
-"""统一错误处理模块"""
+"""统一错误分类与格式化模块 — 纯逻辑，不依赖 UI"""
 
 import logging
 from functools import wraps
-from PySide6.QtWidgets import QMessageBox
-from PySide6.QtCore import QObject, Signal
 
 logger = logging.getLogger("EasyTinking")
 
@@ -85,23 +83,16 @@ def friendly_error_message(exc: Exception, i18n_func=None) -> str:
     return msg
 
 
-def show_error(parent, title: str, message: str):
-    """显示错误弹窗"""
-    QMessageBox.critical(parent, title, message)
+def safe_call(func, i18n_func=None, error_title="Error"):
+    """安全调用装饰器 — 异常时记录日志并返回 None，由 UI 层决定如何展示
 
+    Args:
+        func: 要包装的函数
+        i18n_func: 可选 i18n.t 函数，用于生成多语言错误消息
+        error_title: 错误标题
 
-def show_warning(parent, title: str, message: str):
-    """显示警告弹窗"""
-    QMessageBox.warning(parent, title, message)
-
-
-def safe_call(func, i18n_func=None, parent=None, error_title="Error"):
-    """安全调用装饰器，捕获异常并显示友好提示
-
-    用法:
-        @safe_call(i18n_func=i18n.t, parent=self)
-        def on_click(self):
-            ...
+    Returns:
+        装饰后的函数，异常时返回 None
     """
     @wraps(func)
     def wrapper(*args, **kwargs):
@@ -109,7 +100,6 @@ def safe_call(func, i18n_func=None, parent=None, error_title="Error"):
             return func(*args, **kwargs)
         except Exception as e:
             msg = friendly_error_message(e, i18n_func)
-            logger.exception(f"Error in {func.__name__}")
-            if parent:
-                show_error(parent, error_title, msg)
+            logger.exception(f"Unhandled error in {func.__name__}: {msg}")
+            return None
     return wrapper

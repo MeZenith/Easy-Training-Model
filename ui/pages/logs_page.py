@@ -31,8 +31,9 @@ class LogHandler(QObject):
         try:
             msg = self._handler.format(record)
             self.entry_received.emit(msg, record.levelno)
-        except Exception:
-            pass
+        except Exception as e:
+            import sys
+            print(f"LogHandler format error: {e}", file=sys.stderr)
 
     def remove(self):
         logger = logging.getLogger("EasyTinking")

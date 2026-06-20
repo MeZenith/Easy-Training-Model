@@ -83,8 +83,8 @@ class ExportWorker(BaseWorker):
         if os.path.isfile(meta_path):
             try:
                 shutil.copy(meta_path, os.path.join(out_dir, "training_metadata.json"))
-            except OSError:
-                pass
+            except OSError as e:
+                logger.warning(f"Failed to copy training metadata: {e}")
 
         return self._list_files(model_path)
 
@@ -285,8 +285,8 @@ class Exporter:
                             sz = os.path.getsize(fpath)
                             total_size += sz
                             file_list.append({"name": f, "size": sz, "path": fpath})
-                        except OSError:
-                            pass
+                        except OSError as e:
+                            logger.warning(f"Failed to get file size for {fpath}: {e}")
                 mtime = 0
                 for root, dirs, files in os.walk(path):
                     for f in files:
@@ -294,8 +294,8 @@ class Exporter:
                             t = os.path.getmtime(os.path.join(root, f))
                             if t > mtime:
                                 mtime = t
-                        except OSError:
-                            pass
+                        except OSError as e:
+                            logger.warning(f"Failed to get mtime for {fpath}: {e}")
                 exports.append({
                     "name": entry,
                     "path": path,
