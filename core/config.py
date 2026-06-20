@@ -72,6 +72,19 @@ class AppConfig:
         self._data = deepcopy(_DEFAULT_CONFIG)
         self._ensure_dirs()
         self._load()
+        self._fixup_workspace()
+
+    def _fixup_workspace(self):
+        """修复因目录移动/重命名导致的 workspace 路径不一致"""
+        resolved = self._resolve_workspace()
+        saved = self._data.get("workspace", "")
+        if saved and os.path.normpath(saved) != os.path.normpath(resolved):
+            if not os.path.isdir(saved):
+                self._data["workspace"] = resolved
+                self._data["download_dir"] = os.path.join(resolved, "models")
+                self._data["export_dir"] = os.path.join(resolved, "exports")
+                self._ensure_dirs()
+                self.save()
 
     def _resolve_workspace(self) -> str:
         """解析工作目录路径，兼容 PyInstaller 打包"""

@@ -6,16 +6,14 @@ __pycache__/
 dist/
 build/
 *.spec
-
 # Workspace - user data (models, training outputs, datasets)
 workspace/
 
-# Design assets - not code
-assess/
 
 # IDE
 .vscode/
 .idea/
+.git
 
 # OS
 Thumbs.db
