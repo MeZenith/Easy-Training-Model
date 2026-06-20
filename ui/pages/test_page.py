@@ -1,5 +1,6 @@
 """Test / Chat page - Full implementation"""
 
+import html
 import os
 import time
 from PySide6.QtWidgets import (
@@ -7,8 +8,7 @@ from PySide6.QtWidgets import (
     QTextEdit, QLineEdit, QSplitter, QSlider, QGroupBox,
     QFormLayout, QFrame, QComboBox, QFileDialog, QMessageBox
 )
-from PySide6.QtCore import Qt, Signal, QThread
-from PySide6.QtGui import QTextCursor
+from PySide6.QtCore import Qt, Signal
 
 from core.error_handler import friendly_error_message
 from core.trainer import ProcessTrainer
@@ -313,11 +313,11 @@ class TestPage(QWidget):
         )
 
     def _on_infer_token(self, text: str):
-        """流式追加 token 到聊天框"""
-        cursor = self._chat_display.textCursor()
-        cursor.movePosition(QTextCursor.End)
-        cursor.insertText(text)
-        self._chat_display.setTextCursor(cursor)
+        text = text.replace("\x00", "")
+        if not text:
+            return
+        safe = html.escape(text, quote=False).replace("\n", "<br>")
+        self._chat_display.append(safe)
         self._chat_display.ensureCursorVisible()
         self._stream_tokens += 1
         self._perf_text.setText(f"Streaming: ~{self._stream_tokens} tokens")
@@ -338,10 +338,8 @@ class TestPage(QWidget):
             self._chat_display.append("(no response)")
         else:
             self._messages.append({"role": "assistant", "content": text})
-            cursor = self._chat_display.textCursor()
-            cursor.movePosition(QTextCursor.End)
-            cursor.insertText(text)
-            self._chat_display.append("")
+            safe = html.escape(text, quote=False).replace("\n", "<br>")
+            self._chat_display.append(safe)
 
         # Display performance data
         perf_lines = []

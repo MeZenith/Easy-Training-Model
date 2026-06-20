@@ -6,7 +6,7 @@ import json
 import logging
 import tempfile
 
-from PySide6.QtCore import QProcess, QObject, Signal
+from PySide6.QtCore import QProcess, QProcessEnvironment, QObject, Signal
 
 logger = logging.getLogger("EasyTinking")
 
@@ -35,6 +35,10 @@ class Inferencer(QObject):
         self._process.readyReadStandardOutput.connect(self._on_stdout)
         self._process.finished.connect(self._on_finished)
         self._process.setProcessChannelMode(QProcess.MergedChannels)
+
+        env = QProcessEnvironment.systemEnvironment()
+        env.insert("PYTHONIOENCODING", "utf-8")
+        self._process.setProcessEnvironment(env)
 
         cfg = {"model_path": model_path, "lora_path": lora_path}
         fd, self._config_path = tempfile.mkstemp(suffix=".json")

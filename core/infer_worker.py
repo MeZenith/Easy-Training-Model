@@ -6,6 +6,13 @@ import json
 import time
 import argparse
 
+# Force UTF-8 encoding for stdout when piped to QProcess on Windows
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+elif hasattr(sys.stdout, "buffer"):
+    import io
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
+
 
 def log(msg: str):
     print(msg, flush=True)
