@@ -95,6 +95,8 @@ Easy Tinking/
 ├── requirements.txt            # 宽松依赖
 ├── requirements-lock.txt       # 锁定依赖 (可重现构建)
 ├── README.md / README.en.md    # 文档 (中/英)
+├── setup_icon.py               # 图标设置 (任务栏/窗口)
+├── .github/workflows/          # CI (ruff + pytest)
 ├── core/                       # 业务逻辑层
 │   ├── config.py               # 配置管理 (JSON 持久化, 线程安全)
 │   ├── model_manager.py        # 模型下载/验证/删除
@@ -143,11 +145,13 @@ Easy Tinking/
 │   └── test_i18n.py            # I18n 国际化测试
 ├── assess/                     # QSS 主题样式
 │   ├── professional_theme.qss  # 深色薄荷主题
-│   └── light_theme.qss         # 浅色薄荷主题
+│   ├── light_theme.qss         # 浅色薄荷主题
+│   └── nav_icons.py            # 侧边栏矢量图标
 ├── tools/                      # CLI 工具
 │   ├── convert_hf_to_gguf.py   # HF → GGUF 转换
 │   └── quantize_gguf.py        # GGUF 量化
-└── res/                        # 应用图标
+├── res/                        # 应用图标 (ico)
+└── image/                      # 截图 (文档用)
 ```
 
 ## 已完成的质量改进

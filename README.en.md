@@ -95,6 +95,8 @@ Easy Tinking/
 ├── requirements.txt            # Loose dependencies
 ├── requirements-lock.txt       # Locked dependencies (reproducible builds)
 ├── README.md / README.en.md    # Documentation (ZH / EN)
+├── setup_icon.py               # Icon setup (taskbar/window)
+├── .github/workflows/          # CI (ruff + pytest)
 ├── core/                       # Business logic layer
 │   ├── config.py               # Config management (JSON persistence, thread-safe)
 │   ├── model_manager.py        # Model download / validation / delete
@@ -143,11 +145,13 @@ Easy Tinking/
 │   └── test_i18n.py            # I18n tests
 ├── assess/                     # QSS theme stylesheets
 │   ├── professional_theme.qss  # Dark mint theme
-│   └── light_theme.qss         # Light mint theme
+│   ├── light_theme.qss         # Light mint theme
+│   └── nav_icons.py            # Sidebar vector icons
 ├── tools/                      # CLI utilities
 │   ├── convert_hf_to_gguf.py   # HF → GGUF converter
 │   └── quantize_gguf.py        # GGUF quantizer
-└── res/                        # App icons
+├── res/                        # App icons (ico)
+└── image/                      # Screenshots (for docs)
 ```
 
 ## Quality Improvements
