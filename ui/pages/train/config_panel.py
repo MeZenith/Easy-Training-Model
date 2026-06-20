@@ -437,7 +437,8 @@ class TrainConfigPanel(QWidget):
         if gpus:
             g = gpus[0]
             pct = int(g["vram_used_mb"] / g["vram_total_mb"] * 100) if g["vram_total_mb"] > 0 else 0
-            ok = pct < 90
+            threshold = self._config.get("ui_constants.training.vram_margin_pct", 90)
+            ok = pct < threshold
             self._check_vram_label.setText(
                 f"[{'+' if ok else '-'}] {self._i18n.t('train.check_vram')}: "
                 f"{g['vram_free_mb']}/{g['vram_total_mb']} MB free")
@@ -452,7 +453,8 @@ class TrainConfigPanel(QWidget):
         try:
             usage = shutil.disk_usage(self._config.workspace)
             free_gb = usage.free / (1024 ** 3)
-            ok = free_gb > 5
+            min_free = self._config.get("ui_constants.training.disk_min_free_gb", 5)
+            ok = free_gb > min_free
             self._check_disk_label.setText(
                 f"[{'+' if ok else '-'}] {self._i18n.t('train.check_disk')}: {free_gb:.1f} GB free")
             self._check_disk_label.setStyleSheet("color: #22c55e;" if ok else "color: #ef4444;")

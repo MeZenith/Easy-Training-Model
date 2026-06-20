@@ -89,13 +89,11 @@ class TrainPage(QWidget):
                                 self._i18n.t("error.no_data"))
             return
 
-        if len(config["data"]) < 10:
+        min_samples = self._config.get("ui_constants.training.data_min_samples", 10)
+        if len(config["data"]) < min_samples:
             reply = QMessageBox.warning(
                 self, self._i18n.t("common.warning"),
-                f"{self._i18n.t('data.count')}: {len(config['data'])}\n\n"
-                f"建议使用至少 50 条训练数据以获得可用的微调效果。\n"
-                f"当前数据量过少，模型可能无法学到有效模式。\n\n"
-                f"是否继续？",
+                self._i18n.t("train.data_too_few").format(len(config["data"])),
                 QMessageBox.Yes | QMessageBox.No, QMessageBox.No
             )
             if reply == QMessageBox.No:

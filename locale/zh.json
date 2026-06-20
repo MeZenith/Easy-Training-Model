@@ -207,5 +207,14 @@
   "common.no_data": "暂无数据",
   "train.back": "返回配置",
   "train.training_complete": "训练完成",
-  "train.epoch": "轮次"
+  "train.epoch": "轮次",
+  "app.copyright": "BlueCorner Studio © 2026",
+  "app.company": "BlueCorner Studio",
+  "train.data_too_few": "当前数据量较少 ({0} 条)，建议至少 50 条。是否继续？",
+  "export.wizard_1": "选择已训练的 LoRA 适配器",
+  "export.wizard_2": "勾选导出格式，输入模型名称",
+  "export.wizard_3": "点击保存导出模型文件",
+  "export.wizard_4": "确认 Ollama 状态为可用",
+  "export.wizard_5": "输入模型名称 → 创建 Ollama 模型",
+  "export.wizard_6": "点击运行 → 终端输入 ollama run <名称>"
 }

@@ -59,6 +59,28 @@ _DEFAULT_CONFIG = {
         "selected_datasets": [],
         "selected_lora": "",
         "current_page": "train"
+    },
+    "ui_constants": {
+        "title_bar_height": 40,
+        "sidebar_width_expanded": 200,
+        "sidebar_width_collapsed": 56,
+        "window_min_width": 1024,
+        "window_min_height": 640,
+        "window_default_width": 1280,
+        "window_default_height": 800,
+        "training": {
+            "vram_margin_pct": 90,
+            "disk_min_free_gb": 5,
+            "data_min_samples": 10,
+            "data_recommend_samples": 50,
+        },
+        "slider_defaults": {
+            "temperature": 70,
+            "top_p": 90,
+            "top_k": 50,
+            "repetition_penalty": 110,
+            "presence_penalty": 0,
+        },
     }
 }
 

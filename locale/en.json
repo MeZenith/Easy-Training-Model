@@ -207,5 +207,14 @@
   "common.no_data": "No Data",
   "train.back": "Back to Config",
   "train.training_complete": "Training Complete",
-  "train.epoch": "Epoch"
+  "train.epoch": "Epoch",
+  "app.copyright": "BlueCorner Studio © 2026",
+  "app.company": "BlueCorner Studio",
+  "train.data_too_few": "Low sample count ({0}). Recommend at least 50. Continue?",
+  "export.wizard_1": "Select trained LoRA adapter",
+  "export.wizard_2": "Choose export format and model name",
+  "export.wizard_3": "Click Save to export model files",
+  "export.wizard_4": "Verify Ollama is available",
+  "export.wizard_5": "Enter model name → Create Ollama model",
+  "export.wizard_6": "Click Run → terminal: ollama run <name>"
 }

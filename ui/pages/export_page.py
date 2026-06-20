@@ -172,12 +172,12 @@ class ExportPage(QWidget):
             " background-color: rgba(255,255,255,0.03); border-radius: 4px;"
         )
         self._wizard_label.setText(
-            "[1] 选择已训练的 LoRA 适配器\n"
-            "[2] 勾选导出格式，输入模型名称\n"
-            "[3] 点击\"保存\"导出模型文件\n"
-            "[4] 确认下方 Ollama 状态为 [OK]\n"
-            "[5] 输入 Ollama 模型名称 → 点击\"创建 Ollama 模型\"\n"
-            "[6] 点击\"运行模型\" → 终端输入 ollama run <名称>"
+            f"[1] {self._i18n.t('export.wizard_1')}\n"
+            f"[2] {self._i18n.t('export.wizard_2')}\n"
+            f"[3] {self._i18n.t('export.wizard_3')}\n"
+            f"[4] {self._i18n.t('export.wizard_4')}\n"
+            f"[5] {self._i18n.t('export.wizard_5')}\n"
+            f"[6] {self._i18n.t('export.wizard_6')}"
         )
         deploy_layout.addRow("", self._wizard_label)
 

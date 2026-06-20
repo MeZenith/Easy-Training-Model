@@ -59,8 +59,11 @@ class MainWindow(QMainWindow):
 
     def _init_window(self):
         self.setObjectName("mainWindow")
-        self.setWindowTitle("Easy Tinking - AI Model Fine-tuning Tool")
-        self.setMinimumSize(QSize(1024, 640))
+        self.setWindowTitle(self._i18n.t("app.title") + " - " + self._i18n.t("app.subtitle"))
+        self.setMinimumSize(QSize(
+            self._config.get("ui_constants.window_min_width", 1024),
+            self._config.get("ui_constants.window_min_height", 640)
+        ))
         w = self._config.get("window.width", 1280)
         h = self._config.get("window.height", 800)
         self.resize(w, h)
@@ -81,7 +84,7 @@ class MainWindow(QMainWindow):
         # ===== 自定义标题栏 =====
         title_bar = QWidget()
         title_bar.setObjectName("titleBar")
-        title_bar.setFixedHeight(40)
+        title_bar.setFixedHeight(self._config.get("ui_constants.title_bar_height", 40))
         tb_layout = QHBoxLayout(title_bar)
         tb_layout.setContentsMargins(12, 0, 8, 0)
         tb_layout.setSpacing(4)
@@ -92,7 +95,7 @@ class MainWindow(QMainWindow):
             self._title_icon.setPixmap(QIcon(icon_path).pixmap(20, 20))
         tb_layout.addWidget(self._title_icon)
 
-        self._title_text = QLabel("Easy Tinking")
+        self._title_text = QLabel(self._i18n.t("app.title"))
         self._title_text.setStyleSheet("font-size: 13px; font-weight: 600; color: #8b949e;")
         tb_layout.addWidget(self._title_text)
         tb_layout.addStretch()
@@ -145,7 +148,7 @@ class MainWindow(QMainWindow):
         self._collapse_btn.clicked.connect(self._toggle_sidebar)
         sidebar_layout.addWidget(self._collapse_btn)
 
-        copyright_label = QLabel("BlueCorner Studio \u00a9 2026")
+        copyright_label = QLabel(self._i18n.t("app.copyright"))
         copyright_label.setStyleSheet("color: #484f58; font-size: 10px; padding: 8px;")
         copyright_label.setAlignment(Qt.AlignCenter)
         sidebar_layout.addWidget(copyright_label)
@@ -173,7 +176,7 @@ class MainWindow(QMainWindow):
         self._statusbar.setObjectName("statusbar")
         self.setStatusBar(self._statusbar)
         self._gpu_label = QLabel()
-        self._copyright_label = QLabel("BlueCorner Studio")
+        self._copyright_label = QLabel(self._i18n.t("app.company"))
         self._version_label = QLabel("v1.0")
         for lbl in [self._gpu_label, self._copyright_label, self._version_label]:
             lbl.setStyleSheet("font-size: 12px; color: #8b949e;")
@@ -241,8 +244,10 @@ class MainWindow(QMainWindow):
 
     def _toggle_sidebar(self):
         self._sidebar_expanded = not self._sidebar_expanded
+        w_expanded = self._config.get("ui_constants.sidebar_width_expanded", 200)
+        w_collapsed = self._config.get("ui_constants.sidebar_width_collapsed", 56)
         if self._sidebar_expanded:
-            self._sidebar.setFixedWidth(200)
+            self._sidebar.setFixedWidth(w_expanded)
             self._collapse_btn.setText("\u25c0")
             for i in range(self._nav_list.count()):
                 item = self._nav_list.item(i)
@@ -253,7 +258,7 @@ class MainWindow(QMainWindow):
                             item.setText(f"  {self._i18n.t(ik)}")
                             break
         else:
-            self._sidebar.setFixedWidth(56)
+            self._sidebar.setFixedWidth(w_collapsed)
             self._collapse_btn.setText("\u25b6")
             for i in range(self._nav_list.count()):
                 item = self._nav_list.item(i)
