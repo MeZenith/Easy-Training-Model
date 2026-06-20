@@ -14,7 +14,21 @@ logger = logging.getLogger("EasyTinking")
 
 
 class ProcessTrainer(QObject):
-    """基于 QProcess 的训练管理器 -- 子进程隔离，避免 CUDA/QThread 崩溃"""
+    """QProcess-based training manager — isolates CUDA ops in subprocess
+
+    Communicates with train_worker.py via stdout prefix protocol.
+    Handles process lifecycle: start, stop, stdout parsing, error handling.
+
+    Args:
+        workspace: workspace root directory dictating lora/ subfolder
+
+    Signals:
+        progress(int, str): training progress percentage + description
+        finished(dict): training complete result {final_loss, elapsed_seconds, ...}
+        error(str, str): error code + detail message
+        log_message(str): log lines from subprocess
+        metric(dict): per-step metric {step, loss, lr}
+    """
 
     progress = Signal(int, str)
     finished = Signal(dict)

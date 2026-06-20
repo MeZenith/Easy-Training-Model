@@ -1,4 +1,16 @@
-"""独立训练进程 -- 纯 PyTorch 训练循环，不依赖 Trainer/trl/accelerate/datasets"""
+"""独立训练进程 — 通过 argparse --config 接收训练参数 JSON，执行纯 PyTorch 训练循环
+
+协议格式:
+    stdout 每一行以前缀开头：
+        PROGRESS:<pct>:<desc>  → ProcessTrainer.progress Signal
+        LOG:<message>          → ProcessTrainer.log_message Signal
+        METRIC:step=N loss=0.5 lr=0.0001  → ProcessTrainer.metric Signal
+        RESULT:<json>          → ProcessTrainer.finished Signal
+        ERROR:<code>:<detail>  → ProcessTrainer.error Signal
+        DONE                   → 忽略
+
+不依赖 trainer.py / trl / accelerate / datasets 等外部训练框架。
+"""
 
 import sys
 import os

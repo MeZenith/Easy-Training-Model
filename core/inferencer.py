@@ -12,7 +12,18 @@ logger = logging.getLogger("EasyTinking")
 
 
 class Inferencer(QObject):
-    """基于 QProcess 的推理管理器 — 子进程隔离 CUDA"""
+    """QProcess-based inference manager — isolates CUDA operations in subprocess
+
+    Communicates with infer_worker.py via stdin/stdout JSON lines.
+    Prefix-based line routing: LOG:→progress, TOKEN:→token, RESULT:→result, ERROR:→error, LOADED:{}→loaded.
+
+    Signals:
+        loaded(): subprocess finished loading model
+        progress(str): loading progress messages
+        token(str): streaming token output
+        result(dict): final generation result {text, tokens, speed, ...}
+        error(str, str): error code and detail message
+    """
 
     loaded = Signal()
     progress = Signal(str)

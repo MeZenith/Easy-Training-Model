@@ -15,7 +15,15 @@ REQUIRED_FIELDS = ["instruction", "output"]
 
 
 class Dataset:
-    """单个数据集"""
+    """单个训练数据集 — 内存中的指令-响应数据集合
+
+    Attributes:
+        name: 数据集名称
+        path: 磁盘 JSONL 文件路径
+        data: list[dict] 每个元素含 instruction/input/output 字段
+        description: 数据集描述文本
+        count: 数据条数 (由 data 长度计算)
+    """
 
     def __init__(self, name: str, path: str):
         self.name = name
@@ -124,7 +132,19 @@ class Dataset:
 
 
 class DataManager:
-    """数据集管理器"""
+    """数据集管理器 — CRUD 操作 + JSONL 持久化
+
+    Args:
+        data_dir: 数据集存储目录
+
+    Public API:
+        list_names() → list[str]
+        get(name) → Dataset | None
+        create(name, description) → Dataset
+        delete(name) → bool
+        import_jsonl(path, name) → Dataset
+        generate_identity_data(name, creator, description) → list[dict]
+    """
 
     def __init__(self, data_dir: str):
         self._data_dir = data_dir

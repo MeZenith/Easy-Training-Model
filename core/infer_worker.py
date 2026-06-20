@@ -1,4 +1,20 @@
-"""推理子进程 — 加载模型 + 常驻等待生成请求，CUDA 操作全部隔离在子进程"""
+"""推理子进程 — 加载模型后常驻，通过 stdin JSON 接收生成请求
+
+协议格式:
+    stdout 前缀输出：
+        LOG:<message>          → Inferencer.progress Signal
+        LOADED:{}              → Inferencer.loaded Signal
+        TOKEN:<text>           → Inferencer.token Signal (流式，当前未启用)
+        RESULT:<json>          → Inferencer.result Signal {text, tokens, speed, ...}
+        ERROR:<code>:<detail>  → Inferencer.error Signal
+        DONE                   → 忽略
+
+    stdin JSON 请求:
+        {"action": "generate", "messages": [...], "params": {...}}
+        {"action": "quit"}
+
+CUDA 操作全部隔离在子进程，避免 Qt 主线程崩溃。
+"""
 
 import sys
 import os

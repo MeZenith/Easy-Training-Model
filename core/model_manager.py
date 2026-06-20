@@ -65,7 +65,18 @@ REQUIRED_FILES = ["config.json", "tokenizer.json", "tokenizer_config.json"]
 
 
 class ModelManager:
-    """模型管理器：下载、校验、列表"""
+    """模型管理器 — 下载、校验、列表已下载的 HuggingFace 模型
+
+    Args:
+        download_dir: 模型下载目录
+        hf_mirror: HuggingFace 镜像 URL（可选）
+
+    Public API:
+        list_downloaded_models() → list[dict]
+        validate_model(path) → (bool, list)
+        get_model_detail(path) → dict
+        delete_model(path) → bool
+    """
 
     def __init__(self, download_dir: str, hf_mirror: str = ""):
         self._download_dir = download_dir
