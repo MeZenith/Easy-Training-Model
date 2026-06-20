@@ -16,4 +16,18 @@ jobs:
           python-version: "3.11"
       - run: pip install ruff
       - run: ruff check .
-      - run: python -m py_compile core/*.py ui/pages/*.py ui/components/*.py
+      - run: python -m py_compile main.py
+      - run: python -m py_compile core/*.py core/workers/*.py
+      - run: python -m py_compile ui/*.py ui/pages/*.py ui/pages/train/*.py ui/components/*.py
+
+  test:
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -r requirements.txt
+      - run: pip install pytest pytest-qt
+      - run: pytest tests/ -v

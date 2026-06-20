@@ -1,0 +1,33 @@
+[project]
+name = "Easy-Tinking"
+version = "1.0.0"
+description = "Zero-code GUI tool for LLM fine-tuning — download, train, export, deploy"
+authors = [{name = "BlueCorner Studio"}]
+requires-python = ">=3.10"
+dependencies = [
+    "PySide6>=6.6.0",
+    "pyqtgraph>=0.13.3",
+    "huggingface_hub>=0.20.0",
+    "torch>=2.5.0",
+    "transformers>=4.45.0",
+    "peft>=0.12.0",
+    "accelerate",
+    "safetensors",
+    "gguf",
+]
+
+[project.optional-dependencies]
+gpu = ["bitsandbytes>=0.43.0"]
+tools = ["psutil>=5.9.0"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N"]
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+qt_api = "pyside6"
