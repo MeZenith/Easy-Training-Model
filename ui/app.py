@@ -17,7 +17,7 @@ from utils.i18n import I18n
 from ui.theme import ThemeManager
 from ui.pages.model_page import ModelPage
 from ui.pages.data_page import DataPage
-from ui.pages.train_page import TrainPage
+from ui.pages.train import TrainPage
 from ui.pages.export_page import ExportPage
 from ui.pages.test_page import TestPage
 from ui.pages.settings_page import SettingsPage
