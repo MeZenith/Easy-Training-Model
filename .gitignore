@@ -26,6 +26,12 @@ env/
 
 # Generated output
 *.pdf
+*.png
+!image/*.png
+loss_*.png
 
 # PyInstaller
 *.manifest
+
+# Test cache
+.pytest_cache/
