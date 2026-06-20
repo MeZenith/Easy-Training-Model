@@ -8,7 +8,7 @@ from PySide6.QtWidgets import (
     QPushButton, QStackedWidget, QStatusBar, QFrame, QSizePolicy,
     QMessageBox, QListWidget, QListWidgetItem
 )
-from PySide6.QtCore import Qt, QSize
+from PySide6.QtCore import Qt, QSize, QTimer
 from PySide6.QtGui import QIcon, QFont, QKeySequence, QShortcut
 
 from core.config import AppConfig
@@ -184,6 +184,9 @@ class MainWindow(QMainWindow):
         self._statusbar.addPermanentWidget(self._copyright_label)
         self._statusbar.addPermanentWidget(self._version_label)
         self._update_statusbar()
+        self._gpu_timer = QTimer(self)
+        self._gpu_timer.timeout.connect(self._update_statusbar)
+        self._gpu_timer.start(5000)
 
         last_page = self._config.get("last_state.current_page", "train")
         self._switch_page(last_page)

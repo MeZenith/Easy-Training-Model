@@ -32,8 +32,8 @@ class ExportPage(QWidget):
 
     def _setup_ui(self):
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(24, 24, 24, 24)
-        layout.setSpacing(16)
+        layout.setContentsMargins(16, 16, 16, 16)
+        layout.setSpacing(12)
 
         self._title_label = QLabel()
         self._title_label.setStyleSheet("font-size: 22px; font-weight: bold;")
@@ -335,11 +335,33 @@ class ExportPage(QWidget):
             row = self._export_table.rowCount()
             self._export_table.insertRow(row)
             self._export_table.setItem(row, 0, QTableWidgetItem(exp["name"]))
+            fmt = self._detect_format(exp["path"])
+            self._export_table.setItem(row, 1, QTableWidgetItem(fmt))
             size_mb = exp["size"] / (1024 * 1024) if exp["size"] > 0 else 0
-            self._export_table.setItem(row, 1, QTableWidgetItem(f"{exp['file_count']} files"))
             self._export_table.setItem(row, 2, QTableWidgetItem(f"{size_mb:.1f} MB"))
             t = time.strftime("%Y-%m-%d %H:%M", time.localtime(exp["export_time"])) if exp["export_time"] else ""
             self._export_table.setItem(row, 3, QTableWidgetItem(t))
+
+    @staticmethod
+    def _detect_format(path: str) -> str:
+        """Detect export format from directory contents"""
+        if os.path.isfile(os.path.join(path, "model-F16.gguf")):
+            return "GGUF F16"
+        if os.path.isfile(os.path.join(path, "model-Q4_K_M.gguf")):
+            return "GGUF Q4"
+        if os.path.isfile(os.path.join(path, "model-Q8_0.gguf")):
+            return "GGUF Q8"
+        if os.path.isdir(os.path.join(path, "model_16bit")):
+            return "16-bit"
+        if os.path.isdir(os.path.join(path, "lora_adapter")):
+            return "LoRA"
+        for f in os.listdir(path) if os.path.isdir(path) else []:
+            if f.endswith(".gguf"):
+                return "GGUF"
+        for f in os.listdir(path) if os.path.isdir(path) else []:
+            if f.endswith(".safetensors"):
+                return "SafeTensors"
+        return "-"
 
     def _detect_ollama(self):
         """Detect if Ollama is installed"""

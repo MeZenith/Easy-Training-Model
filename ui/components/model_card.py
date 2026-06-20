@@ -11,6 +11,7 @@ class ModelCard(QFrame):
 
     clicked = Signal(str)
     delete_requested = Signal(str)
+    load_requested = Signal(str)
 
     def __init__(self, name: str, params: str, size: str,
                  status: str = "", path: str = "", parent=None):
@@ -49,6 +50,13 @@ class ModelCard(QFrame):
         detail_label.setStyleSheet("font-size: 11px;")
         bottom_row.addWidget(detail_label)
         bottom_row.addStretch()
+
+        self._load_btn = QPushButton("Load")
+        self._load_btn.setFixedSize(48, 20)
+        self._load_btn.setObjectName("primaryBtn")
+        self._load_btn.setStyleSheet("font-size: 10px; padding: 0;")
+        self._load_btn.clicked.connect(lambda: self.load_requested.emit(self._model_path))
+        bottom_row.addWidget(self._load_btn)
 
         self._delete_btn = QPushButton("X")
         self._delete_btn.setFixedSize(20, 20)

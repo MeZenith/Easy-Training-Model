@@ -216,5 +216,8 @@
   "export.wizard_3": "Click Save to export model files",
   "export.wizard_4": "Verify Ollama is available",
   "export.wizard_5": "Enter model name → Create Ollama model",
-  "export.wizard_6": "Click Run → terminal: ollama run <name>"
+  "export.wizard_6": "Click Run → terminal: ollama run <name>",
+  "settings.lang_desc": "Select your preferred interface language",
+  "settings.theme_desc": "Switch between dark and light color modes",
+  "settings.proxy_desc": "Set HTTP or SOCKS5 proxy for HuggingFace downloads"
 }

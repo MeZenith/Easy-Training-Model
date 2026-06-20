@@ -22,8 +22,8 @@ class SettingsPage(QWidget):
 
     def _setup_ui(self):
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(24, 24, 24, 24)
-        layout.setSpacing(16)
+        layout.setContentsMargins(16, 16, 16, 16)
+        layout.setSpacing(12)
 
         self._title_label = QLabel()
         self._title_label.setStyleSheet("font-size: 22px; font-weight: bold;")
@@ -48,6 +48,9 @@ class SettingsPage(QWidget):
         if idx >= 0:
             self._lang_combo.setCurrentIndex(idx)
         lang_form.addRow(self._i18n.t("settings.language"), self._lang_combo)
+        lang_desc = QLabel(self._i18n.t("settings.lang_desc"))
+        lang_desc.setStyleSheet("color: #888; font-size: 11px; padding: 0 0 4px 0;")
+        lang_form.addRow("", lang_desc)
         form.addWidget(lang_group)
         self._lang_group = lang_group
 
@@ -62,6 +65,9 @@ class SettingsPage(QWidget):
         if idx >= 0:
             self._theme_combo.setCurrentIndex(idx)
         theme_form.addRow(self._i18n.t("settings.theme"), self._theme_combo)
+        theme_desc = QLabel(self._i18n.t("settings.theme_desc"))
+        theme_desc.setStyleSheet("color: #888; font-size: 11px; padding: 0 0 4px 0;")
+        theme_form.addRow("", theme_desc)
         form.addWidget(theme_group)
         self._theme_group = theme_group
 
@@ -100,6 +106,9 @@ class SettingsPage(QWidget):
         self._proxy_socks5_edit.setText(self._config.get("proxy_socks5", ""))
         self._proxy_socks5_edit.setPlaceholderText("socks5://127.0.0.1:7891")
         proxy_form.addRow("SOCKS5:", self._proxy_socks5_edit)
+        proxy_desc = QLabel(self._i18n.t("settings.proxy_desc"))
+        proxy_desc.setStyleSheet("color: #888; font-size: 11px; padding: 0 0 4px 0;")
+        proxy_form.addRow("", proxy_desc)
         form.addWidget(proxy_group)
         self._proxy_group = proxy_group
 
@@ -114,6 +123,7 @@ class SettingsPage(QWidget):
         self._gpu_info_text.setReadOnly(True)
         self._gpu_info_text.setStyleSheet("font-size: 13px;")
         self._load_gpu_info()
+        self._load_sys_info()
         sys_layout.addWidget(self._gpu_info_text)
         form.addWidget(sys_group)
         self._sys_group = sys_group

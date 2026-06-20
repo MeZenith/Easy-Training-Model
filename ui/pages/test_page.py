@@ -38,11 +38,11 @@ class TestPage(QWidget):
 
     def _setup_ui(self):
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(24, 24, 24, 24)
-        layout.setSpacing(16)
+        layout.setContentsMargins(16, 16, 16, 16)
+        layout.setSpacing(12)
 
         self._title_label = QLabel()
-        self._title_label.setStyleSheet("font-size: 22px; font-weight: bold;")
+        self._title_label.setStyleSheet("font-size: 20px; font-weight: bold;")
         layout.addWidget(self._title_label)
 
         splitter = QSplitter(Qt.Horizontal)

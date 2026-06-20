@@ -14,6 +14,7 @@ from PySide6.QtGui import QAction
 
 from core.model_manager import ModelManager, BUILTIN_MODELS
 from core.error_handler import friendly_error_message
+from core.trainer import ProcessTrainer
 from core.workers.download_worker import DownloadWorker
 from ui.components.model_card import ModelCard
 
@@ -34,8 +35,8 @@ class ModelPage(QWidget):
 
     def _setup_ui(self):
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(24, 24, 24, 24)
-        layout.setSpacing(16)
+        layout.setContentsMargins(16, 16, 16, 16)
+        layout.setSpacing(12)
 
         # Title row
         title_row = QHBoxLayout()
@@ -134,6 +135,19 @@ class ModelPage(QWidget):
         detail_layout.addWidget(self._detail_text)
         right_panel.addWidget(detail_group)
         self._detail_group = detail_group
+
+        # LoRA management
+        lora_group = QGroupBox()
+        lora_layout = QVBoxLayout(lora_group)
+        self._lora_list = QListWidget()
+        self._lora_list.setMaximumHeight(120)
+        lora_layout.addWidget(self._lora_list)
+        self._lora_delete_btn = QPushButton()
+        self._lora_delete_btn.setObjectName("trashBtn")
+        self._lora_delete_btn.clicked.connect(self._on_delete_lora)
+        lora_layout.addWidget(self._lora_delete_btn)
+        right_panel.addWidget(lora_group)
+        self._lora_group = lora_group
 
         right_panel.addStretch()
 
@@ -293,6 +307,7 @@ class ModelPage(QWidget):
             )
             card.clicked.connect(self._show_model_detail)
             card.delete_requested.connect(self._on_delete_model)
+            card.load_requested.connect(self._on_load_model)
             self._model_list_layout.addWidget(card)
 
         self._downloaded_label.setText(
@@ -341,6 +356,45 @@ class ModelPage(QWidget):
                 self._refresh_model_list()
                 self._detail_text.clear()
 
+    def _on_load_model(self, model_path: str):
+        """Load model — persist selection to config"""
+        self._config.set("last_state.selected_model", model_path)
+        self.model_selected.emit(model_path)
+
+    def _refresh_loras(self):
+        """Refresh trained LoRA adapters list"""
+        self._lora_list.clear()
+        trainer = ProcessTrainer(self._config.workspace)
+        loras = trainer.list_loras()
+        for lora in loras:
+            meta = lora.get("metadata", {})
+            model_name = os.path.basename(meta.get("model_path", "")) if meta.get("model_path") else "?"
+            self._lora_list.addItem(f"{lora['name']}  [{model_name}]")
+        if not loras:
+            self._lora_list.addItem("(no trained LoRA)")
+
+    def _on_delete_lora(self):
+        """Delete selected LoRA adapter"""
+        item = self._lora_list.currentItem()
+        if not item or item.text().startswith("("):
+            return
+        import shutil
+        lora_name = item.text().split("  [")[0] if "  [" in item.text() else item.text()
+        lora_path = os.path.join(self._config.workspace, "lora", lora_name)
+        if not os.path.isdir(lora_path):
+            return
+        reply = QMessageBox.question(
+            self, self._i18n.t("common.confirm"),
+            f"{self._i18n.t('model.delete_confirm')}\n\n{lora_name}",
+            QMessageBox.Yes | QMessageBox.No, QMessageBox.No
+        )
+        if reply == QMessageBox.Yes:
+            try:
+                shutil.rmtree(lora_path)
+                self._refresh_loras()
+            except OSError as e:
+                QMessageBox.critical(self, self._i18n.t("common.error"), str(e))
+
     def _refresh_texts(self):
         self._title_label.setText(self._i18n.t("nav.model"))
         self._refresh_btn.setText(self._i18n.t("common.refresh"))
@@ -350,8 +404,11 @@ class ModelPage(QWidget):
         self._dir_browse_btn.setText(self._i18n.t("common.browse"))
         self._detail_text.setPlaceholderText(self._i18n.t("model.not_found"))
         self._download_btn.setText(self._i18n.t("model.download"))
+        self._lora_group.setTitle(self._i18n.t("export.lora_adapter"))
+        self._lora_delete_btn.setText(self._i18n.t("common.delete"))
 
     def showEvent(self, event):
         """Refresh list on page display"""
         super().showEvent(event)
         self._refresh_model_list()
+        self._refresh_loras()

@@ -35,14 +35,15 @@ class TrainConfigPanel(QWidget):
         self._connect_signals()
         self.load_models()
         self._apply_preset("standard")
+        self.refresh_texts()
 
     def _setup_ui(self):
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(24, 24, 24, 24)
-        layout.setSpacing(12)
+        layout.setContentsMargins(16, 16, 16, 16)
+        layout.setSpacing(8)
 
         self._title_label = QLabel()
-        self._title_label.setStyleSheet("font-size: 22px; font-weight: bold;")
+        self._title_label.setStyleSheet("font-size: 20px; font-weight: bold;")
         layout.addWidget(self._title_label)
 
         scroll = QScrollArea()
@@ -85,6 +86,10 @@ class TrainConfigPanel(QWidget):
         self._identity_btn = QPushButton()
         self._identity_btn.clicked.connect(self._on_edit_identity)
         idf.addRow(self._i18n.t("train.identity_name") + ":", self._identity_btn)
+
+        self._lora_name_edit = QLineEdit()
+        self._lora_name_edit.setPlaceholderText(self._i18n.t("export.name"))
+        idf.addRow(self._i18n.t("export.name") + ":", self._lora_name_edit)
         top_row.addWidget(identity_group)
         self._identity_group = identity_group
 
@@ -241,7 +246,7 @@ class TrainConfigPanel(QWidget):
             "model_path": self._model_combo.currentData() or "",
             "data": [],
             "dataset_names": [],
-            "lora_name": self._config.get("model_identity.name", "") or "untitled",
+            "lora_name": self._lora_name_edit.text().strip() or self._config.get("model_identity.name", "") or "untitled",
             "lora_rank": self._lora_rank_spin.value(),
             "lora_alpha": self._lora_alpha_spin.value(),
             "lora_dropout": self._lora_dropout_spin.value(),

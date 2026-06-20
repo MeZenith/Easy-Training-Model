@@ -30,11 +30,11 @@ class TrainMonitorPanel(QWidget):
 
     def _setup_ui(self):
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(24, 24, 24, 24)
-        layout.setSpacing(12)
+        layout.setContentsMargins(16, 16, 16, 16)
+        layout.setSpacing(8)
 
         self._title = QLabel()
-        self._title.setStyleSheet("font-size: 20px; font-weight: bold;")
+        self._title.setStyleSheet("font-size: 18px; font-weight: bold;")
         layout.addWidget(self._title)
 
         self._info = QLabel()
