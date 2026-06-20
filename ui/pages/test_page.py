@@ -122,6 +122,9 @@ class TestPage(QWidget):
         temp_row.addWidget(self._temp_slider, 1)
         temp_row.addWidget(self._temp_label)
         params_form.addRow("Temperature:", temp_row)
+        self._temp_desc = QLabel()
+        self._temp_desc.setStyleSheet("font-size: 10px; color: #8b949e;")
+        params_form.addRow("", self._temp_desc)
 
         self._topp_slider = QSlider(Qt.Horizontal)
         self._topp_slider.setRange(0, 100)
@@ -186,8 +189,8 @@ class TestPage(QWidget):
         splitter.setSizes([500, 250])
 
         # Slider connections
-        self._temp_slider.valueChanged.connect(
-            lambda v: self._temp_label.setText(f"{v / 100:.1f}"))
+        self._temp_slider.valueChanged.connect(self._update_temp_display)
+        self._update_temp_display(self._temp_slider.value())
         self._topk_slider.valueChanged.connect(
             lambda v: self._topk_label.setText(str(v)))
         self._rep_penalty_slider.valueChanged.connect(
@@ -279,6 +282,21 @@ class TestPage(QWidget):
         }
 
         self._inferencer.generate(self._messages.copy(), params)
+
+    def _update_temp_display(self, v: int):
+        t = v / 100
+        self._temp_label.setText(f"{t:.2f}")
+        if t <= 0.2:
+            desc = "precise · deterministic"
+        elif t <= 0.5:
+            desc = "focused · consistent"
+        elif t <= 0.8:
+            desc = "balanced · natural"
+        elif t <= 1.2:
+            desc = "creative · varied"
+        else:
+            desc = "highly random · experimental"
+        self._temp_desc.setText(desc)
 
     def _send_preset(self, text: str):
         """Send preset question"""
