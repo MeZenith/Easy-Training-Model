@@ -2,6 +2,8 @@
 name = "Easy-Tinking"
 version = "1.0.0"
 description = "Zero-code GUI tool for LLM fine-tuning — download, train, export, deploy"
+license = {text = "CC BY-NC 4.0"}
+license-files = ["LICENSE"]
 authors = [{name = "BlueCorner Studio"}]
 requires-python = ">=3.10"
 dependencies = [

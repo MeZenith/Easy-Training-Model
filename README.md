@@ -1,150 +1,175 @@
 # Easy Tinking
 
-**零代码 AI 大模型微调桌面工具** —— 下载模型、准备数据、训练、导出、部署到 Ollama，全部在图形界面完成，无需写一行代码。
+**一站式 AI 模型微调工作站** —— 从下载模型到训练、导出、部署、对话测试，全流程图形化操作，无需编写任何代码。
 
-基于 PySide6 + PyTorch + PEFT (LoRA) 构建。
+基于 PySide6 + PyTorch + PEFT (LoRA) · 子进程隔离 CUDA · 中英双语 · 薄荷主题
 
-[English](README.en.md) | 中文
+[中文] | [English](README.en.md)
 
 ## 界面预览
 
-| 页面 | 截图 |
-|------|------|
-| 训练中心 - 参数配置 | ![Page 1](image/Page-1.png) |
-| 训练中心 - 实时监控 | ![Page 2](image/Page-2.png) |
-| 对话测试 | ![Page 3](image/Page-3.png) |
-| 模型管理 | ![Page 4](image/Page-4.png) |
-| 数据管理 | ![Page 5](image/Page-5.png) |
-| 导出部署 | ![Page 6](image/Page-6.png) |
-| 浅色主题 | ![浅色主题](image/主题切换.png) |
-| 英文界面 | ![英文界面](image/英语切换.png) |
+| 训练中心 | 数据管理 | 模型管理 |
+|:---:|:---:|:---:|
+| ![](image/训练中心.png) | ![](image/数据管理.png) | ![](image/模型管理.png) |
+
+| 对话测试 | 导出部署 | 运行日志 |
+|:---:|:---:|:---:|
+| ![](image/对话测试.png) | ![](image/导出部署.png) | ![](image/运行日志.png) |
+
+| 系统设置 | 浅色主题 | 英文界面 |
+|:---:|:---:|:---:|
+| ![](image/系统设置.png) | ![](image/浅色主题.png) | ![](image/切换英文界面.png) |
 
 ## 适用人群
 
-- 想拥有专属 AI 编程助手但不想学深度学习的**全栈开发者**
-- 需要本地部署微调模型、保护代码隐私的**企业开发团队**
-- 正在学习大模型微调、需要一个可视化工具的**AI 初学者**
-- 想快速验证训练数据和参数效果的**算法工程师**
-
-不需要懂 Python、不需要写训练脚本、不需要配环境——打开软件就能训。
+- 想拥有个人 AI 助手但不想学习深度学习的**全栈开发者**
+- 需要本地私有部署微调模型、保护数据隐私的**企业团队**
+- 正在学习大模型微调、需要可视化实验环境的**AI 初学者**
+- 想快速迭代训练数据和参数效果的**算法工程师**
 
 ## 快速开始
 
 ```bash
-# 1. 克隆仓库
 git clone git@github.com:MeZenith/Easy-Training-Model.git
 cd Easy-Training-Model
-
-# 2. 安装依赖
-pip install PySide6 pyqtgraph torch transformers peft huggingface_hub safetensors accelerate bitsandbytes
-
-# 3. 启动
+pip install -r requirements.txt
 python main.py
 ```
 
-**硬件要求**：NVIDIA GPU, CUDA 12.4+, VRAM >= 8GB（3B 模型 fp16 训练约需 6GB）
+**硬件要求**：NVIDIA GPU，CUDA 12.4+，VRAM ≥ 8GB（Qwen2.5-3B 模型 fp16 训练约需 6GB）
 
-## 功能
+## 功能模块
 
-| 模块 | 说明 |
+| 模块 | 功能 |
 |------|------|
-| 模型管理 | 内置 6 个预选模型，支持 HuggingFace 下载、本地模型导入、完整性校验、删除 |
-| 数据管理 | 创建数据集、导入 JSONL/JSON/CSV、在线编辑、多选、身份数据自动生成、数据校验 |
-| 训练中心 | LoRA 微调，参数预设（快速/标准/精细/自定义），双页布局（配置 + 实时监控），Loss 曲线图 |
-| 导出部署 | 16 位完整模型导出（自动合并 LoRA），LoRA 适配器导出，HF→GGUF 转换工具，Ollama 部署 |
-| 对话测试 | 加载训练好的模型对话，Temperature/Top-P/Top-K/重复惩罚/存在惩罚 可调，性能统计 |
-| 系统设置 | 中英文切换、深色/浅色主题、HF 镜像、代理设置、系统/GPU 信息 |
-| 运行日志 | 实时日志查看、级别过滤、关键词搜索、自动滚动 |
+| **模型管理** | 内置 7 个预选模型，支持 HuggingFace 自定义下载、本地验证、删除；可管理已训练的 LoRA 适配器 |
+| **数据管理** | 创建/导入/编辑数据集，支持 JSONL/JSON/CSV，在线表格编辑，身份数据自动生成，数据校验 |
+| **训练中心** | LoRA 微调，4 档预设（快速/标准/精细/自定义），双页布局（配置 + 实时监控），Loss 曲线+GPU 监控 |
+| **导出部署** | 16 位完整模型（自动合并 LoRA），GGUF Q4/Q8/F16 量化，LoRA 适配器单独导出，Ollama 一键部署 |
+| **对话测试** | 加载已训练模型对话，Temperature / Top-P / Top-K / 重复惩罚 / 存在惩罚 可调，实时性能统计 |
+| **系统设置** | 中英文切换、深色/浅色薄荷主题、工作目录/HF 镜像/代理配置、系统/GPU 信息 |
 
 ### 使用流程
 
 ```
-1. 设置 → 配置工作目录和镜像源
-2. 模型管理 → 下载底座模型（推荐 Qwen2.5-Coder-3B）
-3. 数据管理 → 导入/创建训练数据（Alpaca 格式 JSONL）
-4. 训练中心 → 选模型 + 勾数据集 + 调参数 → 开始训练
-5. 导出部署 → 16位导出（自动合并 LoRA）→ Ollama 部署
-6. 对话测试 → 加载训练好的模型聊天
+1. 系统设置 → 配置工作目录和 HuggingFace 镜像源
+2. 模型管理 → 下载底座模型（推荐 Qwen2.5-Coder-3B-Instruct）
+3. 数据管理 → 导入或创建训练数据（Alpaca 格式 JSONL）
+4. 训练中心 → 选择模型 + 勾选数据集 + 设置输出名称 + 调整参数 → 开始训练
+5. 导出部署 → 选择 LoRA → 勾选导出格式 → 保存模型 → Ollama 部署
+6. 对话测试 → 选择 LoRA → 加载模型 → 开始对话
 ```
 
-## 技术栈
+## 技术架构
+
+### 技术栈
 
 | 类别 | 技术 |
 |------|------|
-| UI | PySide6 (Qt 6), pyqtgraph |
-| 深度学习 | PyTorch 2.5, Transformers 5.x, PEFT (LoRA) |
-| 训练 | 子进程隔离, 纯 PyTorch 循环, AMP 混合精度, 梯度检查点 |
-| 导出 | HuggingFace safetensors, GGUF (llama.cpp) |
-| 部署 | Ollama API |
-| 国际化 | 自研 Signal 驱动的 i18n 系统 |
-| 打包 | PyInstaller |
+| UI 框架 | PySide6 (Qt 6), pyqtgraph |
+| 深度学习 | PyTorch 2.5+, Transformers 4.45+, PEFT (LoRA) |
+| 训练引擎 | 子进程隔离, 纯 PyTorch 训练循环, AMP 混合精度, 梯度检查点 |
+| 模型导出 | HuggingFace safetensors, GGUF (llama.cpp) |
+| 模型部署 | Ollama CLI |
+| 国际化 | Signal 驱动的 i18n 系统 (zh / en) |
+| 测试 | pytest, py_compile |
 
-### 训练架构
+### 子进程架构
 
 ```
-main.py (Qt GUI)
-  └── ProcessTrainer (QProcess 子进程管理)
-        └── train_worker.py (独立 Python 进程)
-              ├── 加载底座模型 + LoRA 适配器
-              ├── Alpaca 格式分词
-              ├── AdamW + 梯度累积 + AMP + 梯度检查点
-              ├── Cosine/Linear/Constant 调度器 + 预热
-              └── 保存权重 + 元数据
+main.py → MainWindow (Qt GUI)
+  ├── ProcessTrainer (QProcess)
+  │     └── train_worker.py (独立进程, CUDA 隔离)
+  └── Inferencer (QProcess)
+        └── infer_worker.py (独立进程, stdin/stdout JSON 通信)
 ```
 
-> **为什么用子进程？** 在 Windows + RTX 4060 上，CUDA DLL 在 QThread 中首次加载会触发 0xC0000005 崩溃。子进程完全隔离，崩溃只影响子进程。
+> **为什么用子进程？** 在 Windows + RTX 4060 上，CUDA DLL 在 QThread 中加载会触发 `0xC0000005` 崩溃。子进程完全隔离 CUDA 运行时，崩溃不影响主界面。
 
-## 项目结构
+### 项目结构
 
 ```
 Easy Tinking/
-├── main.py               # 程序入口
-├── setup_icon.py          # 图标设置（任务栏/标题栏/Alt+Tab）
-├── EasyTinking.spec       # PyInstaller 打包配置
-├── core/                  # 核心业务逻辑
-│   ├── config.py          # 配置（深合并、自动保存、原子写入）
-│   ├── model_manager.py   # 模型管理（下载/校验/删除）
-│   ├── data_manager.py    # 数据集管理（CRUD/导入/导出/校验）
-│   ├── train_worker.py    # 独立训练进程（PyTorch 原生循环）
-│   ├── trainer.py         # ProcessTrainer（QProcess 管理）
-│   ├── exporter.py        # 导出（16位/LoRA/GGUF，合并 LoRA）
-│   ├── ollama_deployer.py # Ollama 部署（检测/创建/运行）
-│   └── error_handler.py   # 错误分类/友好提示
-├── ui/                    # 用户界面
-│   ├── app.py             # 主窗口、标题栏、导航、全局异常处理
-│   ├── theme.py           # 主题管理（深色黑+青绿/浅色白+蓝）
-│   ├── pages/             # 7 个功能页面
-│   └── components/        # 可复用组件（Loss 曲线、GPU 监控等）
-├── utils/                 # 工具（i18n、日志、GPU 信息、Worker 基类）
-├── locale/                # 翻译文件（zh.json / en.json）
-├── tools/                 # 转换工具（HF → GGUF）
-├── res/                   # 应用图标
-├── assess/                # QSS 主题样式
-└── workspace/             # 用户工作目录（不上传 Git）
+├── main.py                    # 程序入口
+├── pyproject.toml              # 项目元数据
+├── requirements.txt            # 宽松依赖
+├── requirements-lock.txt       # 锁定依赖 (可重现构建)
+├── README.md / README.en.md    # 文档 (中/英)
+├── core/                       # 业务逻辑层
+│   ├── config.py               # 配置管理 (JSON 持久化, 线程安全)
+│   ├── model_manager.py        # 模型下载/验证/删除
+│   ├── data_manager.py         # 数据集 CRUD / JSONL 持久化
+│   ├── trainer.py              # ProcessTrainer (QProcess 训练管理)
+│   ├── train_worker.py         # 独立训练子进程 (PyTorch 原生循环)
+│   ├── inferencer.py           # Inferencer (QProcess 推理管理)
+│   ├── infer_worker.py         # 独立推理子进程 (stdin JSON 通信)
+│   ├── exporter.py             # 模型导出 (16bit / GGUF / LoRA)
+│   ├── ollama_deployer.py      # Ollama 部署 (检测/创建/运行)
+│   ├── error_handler.py        # 错误分类与格式化
+│   └── workers/
+│       └── download_worker.py  # HuggingFace 下载 Worker
+├── ui/                         # UI 层
+│   ├── app.py                  # 主窗口, 标题栏, 侧边栏, 快捷键
+│   ├── theme.py                # 主题管理器 (深色/浅色单例)
+│   ├── error_dialog.py         # 错误弹窗 (UI 层)
+│   ├── pages/                  # 7 个功能页面
+│   │   ├── model_page.py       # 模型管理 + LoRA 管理
+│   │   ├── data_page.py        # 数据管理
+│   │   ├── train/              # 训练中心 (拆分为3文件)
+│   │   │   ├── train_page.py   # 训练编排
+│   │   │   ├── config_panel.py # 配置面板
+│   │   │   └── monitor_panel.py# 监控面板
+│   │   ├── export_page.py      # 导出部署
+│   │   ├── test_page.py        # 对话测试
+│   │   ├── settings_page.py    # 系统设置
+│   │   └── logs_page.py        # 运行日志
+│   └── components/             # 可复用组件
+│       ├── model_card.py       # 模型信息卡片
+│       ├── loss_chart.py       # 实时 Loss 曲线 (pyqtgraph)
+│       ├── gpu_monitor.py      # GPU 显存监控
+│       ├── data_table.py       # 可编辑数据表格
+│       └── progress_bar.py     # 自定义进度条
+├── utils/                      # 工具层
+│   ├── i18n.py                 # Signal 驱动的国际化管理器
+│   ├── logger.py               # 日志系统
+│   ├── worker.py               # BaseWorker (QThread 基类)
+│   ├── gpu_info.py             # nvidia-smi GPU 信息查询
+│   └── system_info.py          # 系统环境信息
+├── locale/                     # 翻译文件
+│   ├── zh.json                 # 简体中文
+│   └── en.json                 # English
+├── tests/                      # 单元测试
+│   ├── test_config.py          # AppConfig 配置测试
+│   └── test_i18n.py            # I18n 国际化测试
+├── assess/                     # QSS 主题样式
+│   ├── professional_theme.qss  # 深色薄荷主题
+│   └── light_theme.qss         # 浅色薄荷主题
+├── tools/                      # CLI 工具
+│   ├── convert_hf_to_gguf.py   # HF → GGUF 转换
+│   └── quantize_gguf.py        # GGUF 量化
+└── res/                        # 应用图标
 ```
 
-## 已知问题
+## 已完成的质量改进
 
-### 已修复
-| 问题 | 根因 |
+| 类别 | 内容 |
 |------|------|
-| 训练闪退(0xC0000005) | QThread 内 CUDA DLL 初始化崩溃 → 子进程隔离 |
-| 对话输出模板垃圾 | Alpaca 格式不匹配 → 遇到 ### 停止 |
-| 数据导入 BOM 报错 | utf-8 vs BOM → utf-8-sig |
-| Loss 图表空白 | 没喂数据 → 解析子进程 LOG |
-| 中/英文切换失效 | load_language 缓存 → force 参数 |
-| 预设问题硬编码 | 直接字符串 → i18n 动态切换 |
-| 删除按钮看不见 | Unicode 无字形 → X + 红框 QSS |
+| **架构** | error_handler 分层 (core 纯逻辑 / ui 弹窗)，TrainWorker 废弃类删除，train_page 728行拆分为3文件 |
+| **代码整洁** | 17 处静默异常 → logger 记录，6 个硬编码阈值 → config.get()，8 个硬编码文本 → i18n |
+| **UI** | 深色/浅色薄荷主题，毛玻璃侧边栏，统一 8px 圆角，40+ 处硬编码 → i18n |
+| **基础设施** | pyproject.toml，requirements-lock.txt，CI pytest 集成，13 个单元测试，7 个核心类 docstring |
+| **功能** | LoRA 命名输入框，模型页 LoRA 删除管理，ModelCard Load 按钮，GPU 状态栏 5 秒自动刷新 |
 
-### 功能限制
-| 限制 | 原因 |
-|------|------|
-| GGUF 导出不可用 | unsloth 不兼容 PyTorch 2.5.1 |
-| Ollama 直接导入 safetensors 乱码 | Ollama 只完全支持 GGUF |
-| 任务栏图标开发期不显示 | python.exe 图标，打包后正常 |
-| 对话多轮不支持 | 当前 Alpaca 单轮格式 |
-| 单 GPU | 训练循环无分布式 |
+## 许可证
 
-## License
+本软件采用 **CC BY-NC 4.0** 许可证：
 
-Apache 2.0 — BlueCorner Studio
+- **署名** — 使用、修改、再分发时须注明来源 [MeZenith/Easy-Training-Model](https://github.com/MeZenith/Easy-Training-Model)
+- **非商业性** — 不得将本软件用于商业目的
+- **可自由** — 复制、再分发、修改、二次创作
+
+完整条款见 [LICENSE](LICENSE)
+
+---
+
+BlueCorner Studio · 2026
