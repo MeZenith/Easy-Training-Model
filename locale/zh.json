@@ -268,5 +268,9 @@
   "export.loading_base": "加载基础模型...",
   "export.merging_lora": "合并 LoRA 适配器...",
   "export.lora_merged": "LoRA 已合并到基础模型",
-  "export.lora_merge_failed": "LoRA 合并失败: {0}, 仅导出基础模型"
+  "export.lora_merge_failed": "LoRA 合并失败: {0}, 仅导出基础模型",
+  "settings.lang_zh": "中文",
+  "settings.lang_en": "English",
+  "settings.proxy_http": "HTTP",
+  "settings.proxy_socks5": "SOCKS5"
 }

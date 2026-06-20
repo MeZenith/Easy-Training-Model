@@ -268,5 +268,9 @@
   "export.loading_base": "Loading base model...",
   "export.merging_lora": "Merging LoRA adapter...",
   "export.lora_merged": "LoRA merged into base model",
-  "export.lora_merge_failed": "LoRA merge failed: {0}, exporting base model only"
+  "export.lora_merge_failed": "LoRA merge failed: {0}, exporting base model only",
+  "settings.lang_zh": "中文",
+  "settings.lang_en": "English",
+  "settings.proxy_http": "HTTP",
+  "settings.proxy_socks5": "SOCKS5"
 }

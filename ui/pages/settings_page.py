@@ -42,7 +42,8 @@ class SettingsPage(QWidget):
         lang_form = QFormLayout(lang_group)
         self._lang_combo = QComboBox()
         for lang in self._i18n.available_languages():
-            self._lang_combo.addItem(lang.upper(), lang)
+            display = self._i18n.t(f"settings.lang_{lang}") if self._i18n.t(f"settings.lang_{lang}") != f"settings.lang_{lang}" else lang.upper()
+            self._lang_combo.addItem(display, lang)
         current = self._config.get("language", "zh")
         idx = self._lang_combo.findData(current)
         if idx >= 0:
@@ -100,12 +101,12 @@ class SettingsPage(QWidget):
         self._proxy_http_edit = QLineEdit()
         self._proxy_http_edit.setText(self._config.get("proxy_http", ""))
         self._proxy_http_edit.setPlaceholderText("http://127.0.0.1:7890")
-        proxy_form.addRow("HTTP:", self._proxy_http_edit)
+        proxy_form.addRow(self._i18n.t("settings.proxy_http") + ":", self._proxy_http_edit)
 
         self._proxy_socks5_edit = QLineEdit()
         self._proxy_socks5_edit.setText(self._config.get("proxy_socks5", ""))
         self._proxy_socks5_edit.setPlaceholderText("socks5://127.0.0.1:7891")
-        proxy_form.addRow("SOCKS5:", self._proxy_socks5_edit)
+        proxy_form.addRow(self._i18n.t("settings.proxy_socks5") + ":", self._proxy_socks5_edit)
         proxy_desc = QLabel(self._i18n.t("settings.proxy_desc"))
         proxy_desc.setObjectName("label-desc")
         proxy_form.addRow("", proxy_desc)
@@ -213,3 +214,26 @@ class SettingsPage(QWidget):
         self._hf_group.setTitle(self._i18n.t("settings.hf_mirror"))
         self._proxy_group.setTitle(self._i18n.t("settings.proxy"))
         self._sys_group.setTitle(self._i18n.t("settings.sys_info"))
+
+        # Refresh theme combo (preserve selection)
+        cur_theme = self._theme_combo.currentData()
+        self._theme_combo.blockSignals(True)
+        self._theme_combo.clear()
+        self._theme_combo.addItem(self._i18n.t("settings.dark"), "dark")
+        self._theme_combo.addItem(self._i18n.t("settings.light"), "light")
+        idx = self._theme_combo.findData(cur_theme)
+        if idx >= 0:
+            self._theme_combo.setCurrentIndex(idx)
+        self._theme_combo.blockSignals(False)
+
+        # Refresh language combo display names (preserve selection)
+        cur_lang = self._lang_combo.currentData()
+        self._lang_combo.blockSignals(True)
+        self._lang_combo.clear()
+        for lang in self._i18n.available_languages():
+            display = self._i18n.t(f"settings.lang_{lang}")
+            self._lang_combo.addItem(display, lang)
+        idx = self._lang_combo.findData(cur_lang)
+        if idx >= 0:
+            self._lang_combo.setCurrentIndex(idx)
+        self._lang_combo.blockSignals(False)
