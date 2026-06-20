@@ -194,7 +194,7 @@ class DataPage(QWidget):
         right_layout.addLayout(search_row)
 
         # Data table
-        self._data_table = DataTable()
+        self._data_table = DataTable(parent=self, i18n=self._i18n)
         right_layout.addWidget(self._data_table, 1)
 
         # Table operations

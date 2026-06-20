@@ -8,7 +8,7 @@ import pyqtgraph as pg
 class LossChart(QWidget):
     """实时训练 Loss 曲线图 — 支持缩放/平移"""
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, i18n=None):
         super().__init__(parent)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -16,8 +16,8 @@ class LossChart(QWidget):
 
         self._plot_widget = pg.PlotWidget()
         self._plot_widget.setBackground("transparent")
-        self._plot_widget.setLabel("left", "Loss")
-        self._plot_widget.setLabel("bottom", "Step")
+        self._plot_widget.setLabel("left", "Loss" if i18n is None else i18n.t("chart.loss"))
+        self._plot_widget.setLabel("bottom", "Step" if i18n is None else i18n.t("chart.step"))
         self._plot_widget.showGrid(x=True, y=True, alpha=0.3)
         self._plot_widget.setMinimumHeight(200)
 
@@ -37,10 +37,12 @@ class LossChart(QWidget):
         self._steps = []
 
         btn_row = QHBoxLayout()
-        self._export_btn = QPushButton("Export PNG")
+        txt_export = "Export PNG" if i18n is None else i18n.t("chart.export_png")
+        txt_reset = "Reset" if i18n is None else i18n.t("common.reset")
+        self._export_btn = QPushButton(txt_export)
         self._export_btn.setMinimumWidth(80)
         self._export_btn.clicked.connect(self.export_png)
-        self._reset_btn = QPushButton("Reset")
+        self._reset_btn = QPushButton(txt_reset)
         self._reset_btn.setMinimumWidth(50)
         self._reset_btn.clicked.connect(self.reset_view)
         btn_row.addStretch()

@@ -140,7 +140,7 @@ class TrainConfigPanel(QWidget):
         self._grad_accum_combo.addItems(["1", "2", "4", "8"])
         tpf.addRow(self._i18n.t("train.grad_accum") + ":", self._grad_accum_combo)
 
-        self._advanced_toggle = QPushButton("+ " + self._i18n.t("train.more_params"))
+        self._advanced_toggle = QPushButton(self._i18n.t("train.more_params_show"))
         self._advanced_toggle.setObjectName("primaryBtn")
         self._advanced_toggle.setMaximumHeight(28)
         self._advanced_toggle.clicked.connect(self._toggle_advanced)
@@ -212,7 +212,7 @@ class TrainConfigPanel(QWidget):
 
         gpu_group = QGroupBox()
         gl = QVBoxLayout(gpu_group)
-        self._gpu_monitor = GPUMonitor()
+        self._gpu_monitor = GPUMonitor(parent=self, i18n=self._i18n)
         gl.addWidget(self._gpu_monitor)
         check_row.addWidget(gpu_group)
         self._gpu_group = gpu_group
@@ -358,8 +358,8 @@ class TrainConfigPanel(QWidget):
     def _toggle_advanced(self):
         visible = not self._more_params_group.isVisible()
         self._more_params_group.setVisible(visible)
-        prefix = "- " if visible else "+ "
-        self._advanced_toggle.setText(prefix + self._i18n.t("train.more_params"))
+        prefix = self._i18n.t("train.more_params_hide") if visible else self._i18n.t("train.more_params_show")
+        self._advanced_toggle.setText(prefix)
 
     def _on_model_changed(self, index):
         model_path = self._model_combo.currentData()

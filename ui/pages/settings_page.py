@@ -58,8 +58,8 @@ class SettingsPage(QWidget):
         theme_group = QGroupBox()
         theme_form = QFormLayout(theme_group)
         self._theme_combo = QComboBox()
-        self._theme_combo.addItem("Dark", "dark")
-        self._theme_combo.addItem("Light", "light")
+        self._theme_combo.addItem(self._i18n.t("settings.dark"), "dark")
+        self._theme_combo.addItem(self._i18n.t("settings.light"), "light")
         current_theme = self._config.get("theme", "dark")
         idx = self._theme_combo.findData(current_theme)
         if idx >= 0:
@@ -180,7 +180,7 @@ class SettingsPage(QWidget):
             self._sys_info_text.setPlainText("\n".join(lines))
         except Exception as e:
             logger.warning(f"Failed to load system info: {e}")
-            self._sys_info_text.setPlainText("N/A")
+            self._sys_info_text.setPlainText(self._i18n.t("component.na"))
 
     def _load_gpu_info(self):
         try:
@@ -198,11 +198,11 @@ class SettingsPage(QWidget):
             if cuda_ver:
                 lines.append(f"CUDA: {cuda_ver}")
             if not gpus:
-                lines.append("No GPU detected")
+                lines.append(self._i18n.t("component.no_gpu"))
             self._gpu_info_text.setPlainText("\n".join(lines))
         except Exception as e:
             logger.warning(f"Failed to load GPU info: {e}")
-            self._gpu_info_text.setPlainText("N/A")
+            self._gpu_info_text.setPlainText(self._i18n.t("component.na"))
 
     def _refresh_texts(self):
         self._title_label.setText(self._i18n.t("nav.settings"))

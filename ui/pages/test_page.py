@@ -258,13 +258,13 @@ class TestPage(QWidget):
         # Display user message
         self._chat_display.append(
             f"<div style='text-align:right; color:#8b5cf6; margin:8px 0;'>"
-            f"<b>You:</b> {text}</div>"
+            f"<b>{self._i18n.t('test.you')}</b> {text}</div>"
         )
         self._messages.append({"role": "user", "content": text})
         self._input_edit.clear()
 
         # Display assistant label
-        self._chat_display.append("<b>Assistant:</b> ")
+        self._chat_display.append(f"<b>{self._i18n.t('test.assistant')}</b> ")
 
         # Build generation params
         try:
@@ -287,15 +287,15 @@ class TestPage(QWidget):
         t = v / 100
         self._temp_label.setText(f"{t:.2f}")
         if t <= 0.2:
-            desc = "precise · deterministic"
+            desc = self._i18n.t("test.temp_precise")
         elif t <= 0.5:
-            desc = "focused · consistent"
+            desc = self._i18n.t("test.temp_focused")
         elif t <= 0.8:
-            desc = "balanced · natural"
+            desc = self._i18n.t("test.temp_balanced")
         elif t <= 1.2:
-            desc = "creative · varied"
+            desc = self._i18n.t("test.temp_creative")
         else:
-            desc = "highly random · experimental"
+            desc = self._i18n.t("test.temp_random")
         self._temp_desc.setText(desc)
 
     def _send_preset(self, text: str):
@@ -320,7 +320,7 @@ class TestPage(QWidget):
         self._chat_display.append(safe)
         self._chat_display.ensureCursorVisible()
         self._stream_tokens += 1
-        self._perf_text.setText(f"Streaming: ~{self._stream_tokens} tokens")
+        self._perf_text.setText(self._i18n.t("test.streaming_format").format(self._stream_tokens))
 
     def _on_infer_result(self, result: dict):
         """Generation complete"""
@@ -335,7 +335,7 @@ class TestPage(QWidget):
                 f"<i style='color:red;'>Error: {error}</i>"
             )
         elif not text.strip():
-            self._chat_display.append("(no response)")
+            self._chat_display.append(self._i18n.t("test.no_response"))
         else:
             self._messages.append({"role": "assistant", "content": text})
             safe = html.escape(text, quote=False).replace("\n", "<br>")

@@ -59,7 +59,7 @@ class TrainMonitorPanel(QWidget):
         btn_row.addWidget(self._back_btn)
         layout.addLayout(btn_row)
 
-        self._loss_chart = LossChart()
+        self._loss_chart = LossChart(parent=self, i18n=self._i18n)
         self._loss_chart.setMinimumHeight(300)
         layout.addWidget(self._loss_chart, 1)
 
@@ -92,7 +92,7 @@ class TrainMonitorPanel(QWidget):
     def set_training_state(self, model_name: str, info_text: str):
         """Initialize monitor panel for new training session"""
         self._loss_values = []
-        self._title.setText(f"[T] {model_name}")
+        self._title.setText(self._i18n.t("train.training_label").format(model_name))
         self._info.setText(info_text)
         self._step_label.setText(self._i18n.t("common.loading"))
         self._progress_bar.setValue(0)

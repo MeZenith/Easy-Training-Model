@@ -11,10 +11,16 @@ class DataTable(QTableWidget):
 
     data_changed = Signal()
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, i18n=None):
         super().__init__(parent)
         self.setColumnCount(4)
-        self.setHorizontalHeaderLabels(["#", "Instruction", "Input", "Output"])
+        if i18n:
+            self.setHorizontalHeaderLabels([
+                i18n.t("data.col_index"), i18n.t("data.col_instruction"),
+                i18n.t("data.col_input"), i18n.t("data.col_output")
+            ])
+        else:
+            self.setHorizontalHeaderLabels(["#", "Instruction", "Input", "Output"])
         self.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.setAlternatingRowColors(True)
         self.setSelectionBehavior(QTableWidget.SelectRows)

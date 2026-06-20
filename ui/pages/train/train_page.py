@@ -121,7 +121,7 @@ class TrainPage(QWidget):
         if reply == QMessageBox.Yes:
             self._trainer.stop_training()
             QMessageBox.information(self, self._i18n.t("common.success"),
-                                    "Training stopped")
+                                    self._i18n.t("train.stopped"))
 
     def _on_back(self):
         self._stack.setCurrentIndex(0)
