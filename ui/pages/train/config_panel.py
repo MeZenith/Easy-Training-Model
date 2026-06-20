@@ -33,7 +33,7 @@ class TrainConfigPanel(QWidget):
         self._data_manager = None
         self._setup_ui()
         self._connect_signals()
-        self._load_models()
+        self.load_models()
         self._apply_preset("standard")
 
     def _setup_ui(self):
