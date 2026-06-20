@@ -48,7 +48,8 @@ class SettingsPage(QWidget):
         idx = self._lang_combo.findData(current)
         if idx >= 0:
             self._lang_combo.setCurrentIndex(idx)
-        lang_form.addRow(self._i18n.t("settings.language"), self._lang_combo)
+        self._lang_label = QLabel(self._i18n.t("settings.language") + ":")
+        lang_form.addRow(self._lang_label, self._lang_combo)
         lang_desc = QLabel(self._i18n.t("settings.lang_desc"))
         lang_desc.setObjectName("label-desc")
         lang_form.addRow("", lang_desc)
@@ -65,7 +66,8 @@ class SettingsPage(QWidget):
         idx = self._theme_combo.findData(current_theme)
         if idx >= 0:
             self._theme_combo.setCurrentIndex(idx)
-        theme_form.addRow(self._i18n.t("settings.theme"), self._theme_combo)
+        self._theme_label = QLabel(self._i18n.t("settings.theme") + ":")
+        theme_form.addRow(self._theme_label, self._theme_combo)
         theme_desc = QLabel(self._i18n.t("settings.theme_desc"))
         theme_desc.setObjectName("label-desc")
         theme_form.addRow("", theme_desc)
@@ -82,7 +84,8 @@ class SettingsPage(QWidget):
         ws_row.addWidget(self._ws_edit, 1)
         self._ws_browse_btn = QPushButton()
         ws_row.addWidget(self._ws_browse_btn)
-        ws_form.addRow(self._i18n.t("settings.workspace"), ws_row)
+        self._ws_label = QLabel(self._i18n.t("settings.workspace") + ":")
+        ws_form.addRow(self._ws_label, ws_row)
         form.addWidget(ws_group)
         self._ws_group = ws_group
 
@@ -91,7 +94,8 @@ class SettingsPage(QWidget):
         hf_form = QFormLayout(hf_group)
         self._hf_edit = QLineEdit()
         self._hf_edit.setText(self._config.get("hf_mirror", "https://hf-mirror.com"))
-        hf_form.addRow(self._i18n.t("settings.hf_mirror"), self._hf_edit)
+        self._hf_label = QLabel(self._i18n.t("settings.hf_mirror") + ":")
+        hf_form.addRow(self._hf_label, self._hf_edit)
         form.addWidget(hf_group)
         self._hf_group = hf_group
 
@@ -101,12 +105,14 @@ class SettingsPage(QWidget):
         self._proxy_http_edit = QLineEdit()
         self._proxy_http_edit.setText(self._config.get("proxy_http", ""))
         self._proxy_http_edit.setPlaceholderText("http://127.0.0.1:7890")
-        proxy_form.addRow(self._i18n.t("settings.proxy_http") + ":", self._proxy_http_edit)
+        self._proxy_http_label = QLabel(self._i18n.t("settings.proxy_http") + ":")
+        proxy_form.addRow(self._proxy_http_label, self._proxy_http_edit)
 
         self._proxy_socks5_edit = QLineEdit()
         self._proxy_socks5_edit.setText(self._config.get("proxy_socks5", ""))
         self._proxy_socks5_edit.setPlaceholderText("socks5://127.0.0.1:7891")
-        proxy_form.addRow(self._i18n.t("settings.proxy_socks5") + ":", self._proxy_socks5_edit)
+        self._proxy_socks5_label = QLabel(self._i18n.t("settings.proxy_socks5") + ":")
+        proxy_form.addRow(self._proxy_socks5_label, self._proxy_socks5_edit)
         proxy_desc = QLabel(self._i18n.t("settings.proxy_desc"))
         proxy_desc.setObjectName("label-desc")
         proxy_form.addRow("", proxy_desc)
@@ -214,6 +220,13 @@ class SettingsPage(QWidget):
         self._hf_group.setTitle(self._i18n.t("settings.hf_mirror"))
         self._proxy_group.setTitle(self._i18n.t("settings.proxy"))
         self._sys_group.setTitle(self._i18n.t("settings.sys_info"))
+
+        self._lang_label.setText(self._i18n.t("settings.language") + ":")
+        self._theme_label.setText(self._i18n.t("settings.theme") + ":")
+        self._ws_label.setText(self._i18n.t("settings.workspace") + ":")
+        self._hf_label.setText(self._i18n.t("settings.hf_mirror") + ":")
+        self._proxy_http_label.setText(self._i18n.t("settings.proxy_http") + ":")
+        self._proxy_socks5_label.setText(self._i18n.t("settings.proxy_socks5") + ":")
 
         # Refresh theme combo (preserve selection)
         cur_theme = self._theme_combo.currentData()
