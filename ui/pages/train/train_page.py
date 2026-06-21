@@ -37,6 +37,7 @@ class TrainPage(QWidget):
         self._connect_signals()
         self._attach_trainer_signals()
         self._i18n.language_changed.connect(self._refresh_texts)
+        self._refresh_texts()
 
     def _setup_ui(self):
         main_layout = QVBoxLayout(self)

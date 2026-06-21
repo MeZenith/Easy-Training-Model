@@ -27,6 +27,7 @@ class TrainMonitorPanel(QWidget):
         self._i18n = i18n
         self._loss_values = []
         self._setup_ui()
+        self.refresh_texts()
 
     def _setup_ui(self):
         layout = QVBoxLayout(self)
