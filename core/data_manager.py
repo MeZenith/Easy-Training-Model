@@ -43,7 +43,7 @@ class Dataset:
                 self.description = meta.get("description", "")
                 self.created_at = meta.get("created_at", "")
             except Exception:
-                pass
+                logger.warning(f"Failed to read dataset meta {meta_path}")
 
         self.data = []
         if os.path.isfile(data_path):

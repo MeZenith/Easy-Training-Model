@@ -45,6 +45,7 @@ class OllamaDeployer:
             )
             return result.stdout.strip()
         except Exception:
+            logger.warning("Failed to detect ollama version")
             return ""
 
     def generate_modelfile(self, model_path: str, model_name: str,
@@ -163,5 +164,6 @@ class OllamaDeployer:
                         })
                 return models
         except Exception:
+            logger.warning("Failed to list ollama models")
             pass
         return []

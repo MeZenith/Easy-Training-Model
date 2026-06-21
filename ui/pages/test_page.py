@@ -1,7 +1,6 @@
 """Test / Chat page - Full implementation"""
 
 import html
-import os
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
@@ -23,7 +22,7 @@ from PySide6.QtWidgets import (
 
 from core.error_handler import friendly_error_message
 from core.inferencer import Inferencer
-from core.trainer import ProcessTrainer
+from core.services.train_service import list_loras_for_combo
 
 PRESET_QUESTION_KEYS = [
     "test.preset_q1",
@@ -126,32 +125,32 @@ class TestPage(QWidget):
 
         self._temp_slider = QSlider(Qt.Horizontal)
         self._temp_slider.setRange(0, 200)
-        self._temp_slider.setValue(70)
+        self._temp_slider.setValue(self._config.get("ui_constants.slider_defaults.temperature", 70))
         self._temp_label = QLabel("0.7")
         temp_row = QHBoxLayout()
         temp_row.addWidget(self._temp_slider, 1)
         temp_row.addWidget(self._temp_label)
-        params_form.addRow("Temperature:", temp_row)
+        params_form.addRow(self._i18n.t("test.temperature") + ":", temp_row)
         self._temp_desc = QLabel()
         self._temp_desc.setStyleSheet("font-size: 10px; color: #8b949e;")
         params_form.addRow("", self._temp_desc)
 
         self._topp_slider = QSlider(Qt.Horizontal)
         self._topp_slider.setRange(0, 100)
-        self._topp_slider.setValue(90)
+        self._topp_slider.setValue(self._config.get("ui_constants.slider_defaults.top_p", 90))
         self._topp_label = QLabel("0.90")
         topp_row = QHBoxLayout()
         topp_row.addWidget(self._topp_slider, 1)
         topp_row.addWidget(self._topp_label)
-        params_form.addRow("Top-p:", topp_row)
+        params_form.addRow(self._i18n.t("test.top_p") + ":", topp_row)
 
         self._max_tokens_edit = QLineEdit("256")
         self._max_tokens_edit.setMaximumWidth(80)
-        params_form.addRow("Max Tokens:", self._max_tokens_edit)
+        params_form.addRow(self._i18n.t("test.max_tokens") + ":", self._max_tokens_edit)
 
         self._topk_slider = QSlider(Qt.Horizontal)
         self._topk_slider.setRange(1, 200)
-        self._topk_slider.setValue(50)
+        self._topk_slider.setValue(self._config.get("ui_constants.slider_defaults.top_k", 50))
         self._topk_label = QLabel("50")
         topk_row = QHBoxLayout()
         topk_row.addWidget(self._topk_slider, 1)
@@ -160,7 +159,7 @@ class TestPage(QWidget):
 
         self._rep_penalty_slider = QSlider(Qt.Horizontal)
         self._rep_penalty_slider.setRange(100, 200)
-        self._rep_penalty_slider.setValue(110)
+        self._rep_penalty_slider.setValue(self._config.get("ui_constants.slider_defaults.repetition_penalty", 110))
         self._rep_penalty_label = QLabel("1.10")
         rep_row = QHBoxLayout()
         rep_row.addWidget(self._rep_penalty_slider, 1)
@@ -169,7 +168,7 @@ class TestPage(QWidget):
 
         self._pres_penalty_slider = QSlider(Qt.Horizontal)
         self._pres_penalty_slider.setRange(0, 100)
-        self._pres_penalty_slider.setValue(0)
+        self._pres_penalty_slider.setValue(self._config.get("ui_constants.slider_defaults.presence_penalty", 0))
         self._pres_penalty_label = QLabel("0.00")
         pres_row = QHBoxLayout()
         pres_row.addWidget(self._pres_penalty_slider, 1)
@@ -219,14 +218,11 @@ class TestPage(QWidget):
     def _load_loras(self):
         """Load LoRA adapter list"""
         self._lora_combo.clear()
-        trainer = ProcessTrainer(self._config.workspace)
-        loras = trainer.list_loras()
-        for lora in loras:
-            meta = lora.get("metadata", {})
-            model_path = meta.get("model_path", "")
+        loras = list_loras_for_combo(self._config.workspace)
+        for item in loras:
             self._lora_combo.addItem(
-                f"{lora['name']} ({os.path.basename(model_path)})" if model_path else lora["name"],
-                userData={"lora_path": lora["path"], "model_path": model_path}
+                item["display"],
+                userData={"lora_path": item["lora_path"], "model_path": item["model_path"]}
             )
 
     def _on_load_model(self):

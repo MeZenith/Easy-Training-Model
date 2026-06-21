@@ -228,6 +228,7 @@ class ExportWorker(BaseWorker):
                     q_data = quantize(tensor.data, qtype)
                     writer.add_tensor(tensor.name, q_data, raw_shape=tensor.shape)
                 except Exception:
+                    logger.warning(f"Quant failed for tensor {tensor.name}, keeping F16")
                     writer.add_tensor(tensor.name, tensor.data, raw_shape=tensor.shape)
             else:
                 writer.add_tensor(tensor.name, tensor.data, raw_shape=tensor.shape)

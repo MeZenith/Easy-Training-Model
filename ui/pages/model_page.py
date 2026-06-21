@@ -1,5 +1,6 @@
 """Model Management page - Full implementation"""
 
+import logging
 import os
 import shutil
 
@@ -29,6 +30,8 @@ from core.model_manager import BUILTIN_MODELS, ModelManager
 from core.trainer import ProcessTrainer
 from core.workers.download_worker import DownloadWorker
 from ui.components.model_card import ModelCard
+
+logger = logging.getLogger("EasyTinking")
 
 
 class ModelPage(QWidget):
@@ -235,11 +238,13 @@ class ModelPage(QWidget):
         try:
             disk_usage = shutil.disk_usage(download_dir)
             free_gb = disk_usage.free / (1024 ** 3)
-            if free_gb < 2:
+            min_free = self._config.get("ui_constants.training.disk_min_free_gb", 5)
+            if free_gb < min_free:
                 QMessageBox.warning(self, self._i18n.t("common.error"),
                                     self._i18n.t("error.disk_full"))
                 return
         except OSError:
+            logger.warning(f"Failed to check disk space for {download_dir}")
             pass
 
         # Check if already downloaded

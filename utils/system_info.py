@@ -40,6 +40,7 @@ def get_system_info() -> dict:
             )
             info["disk_free_gb"] = round(free_bytes.value / (1024 ** 3), 1)
     except Exception:
+        logger.warning("Failed to get disk free space")
         pass
     return info
 

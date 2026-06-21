@@ -39,6 +39,7 @@ def get_gpu_info() -> list:
                     "driver_version": parts[6],
                 })
     except (FileNotFoundError, subprocess.TimeoutExpired, ValueError, OSError):
+        logger.warning("Failed to query GPU info via nvidia-smi")
         pass
     return gpus
 
@@ -54,5 +55,6 @@ def get_cuda_version() -> str:
         if result.returncode == 0:
             return result.stdout.strip()
     except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
+        logger.warning("Failed to query CUDA version via nvidia-smi")
         pass
     return ""

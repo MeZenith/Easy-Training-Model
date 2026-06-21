@@ -1,10 +1,13 @@
 """主题与样式管理 — 加载 QSS 文件应用深色/浅色主题"""
 
+import logging
 import os
 import sys
 
 from PySide6.QtCore import QObject, Signal
 from PySide6.QtWidgets import QApplication
+
+logger = logging.getLogger("EasyTinking")
 
 
 def _load_qss(filename: str) -> str:
@@ -17,6 +20,7 @@ def _load_qss(filename: str) -> str:
             with open(path, "r", encoding="utf-8") as f:
                 return f.read()
     except Exception:
+        logger.warning(f"Failed to load QSS file: {filename}")
         pass
     return ""
 

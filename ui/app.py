@@ -100,6 +100,7 @@ class MainWindow(QMainWindow):
                 ctypes.sizeof(ctypes.c_int),
             )
         except Exception:
+            logger.warning("Failed to apply rounded corners via DWM")
             pass
 
     def _init_ui(self):
@@ -308,6 +309,7 @@ class MainWindow(QMainWindow):
             else:
                 text = "GPU: N/A"
         except Exception:
+            logger.warning("Failed to query GPU info for status bar")
             text = "GPU: N/A"
         self._gpu_label.setText(text)
 

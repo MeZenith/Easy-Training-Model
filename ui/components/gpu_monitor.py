@@ -1,9 +1,13 @@
 """GPU 显存监控条组件"""
 
+import logging
+
 from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QProgressBar, QWidget
 
 from utils.gpu_info import get_gpu_info
+
+logger = logging.getLogger("EasyTinking")
 
 
 class GPUMonitor(QWidget):
@@ -58,6 +62,7 @@ class GPUMonitor(QWidget):
                 txt_na = "N/A" if self._i18n is None else self._i18n.t("component.na")
                 self._value_label.setText(txt_na)
         except Exception:
+            logger.warning("Failed to refresh GPU monitor")
             self._bar.setValue(0)
             txt_err = "Error" if self._i18n is None else self._i18n.t("common.error")
             self._value_label.setText(txt_err)

@@ -8,9 +8,12 @@
     set_window_icon(window)   # 窗口也设一份
 """
 
+import logging
 import os
 import sys
 from pathlib import Path
+
+logger = logging.getLogger("EasyTinking")
 
 APP_NAME = "EasyTinking"
 COMPANY = "BlueCornerStudio"
@@ -49,7 +52,7 @@ def set_appusermodelid():
         import ctypes
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(app_id)
     except Exception:
-        pass
+        logger.warning("Failed to set AppUserModelID")
 
 
 _icon_path = None

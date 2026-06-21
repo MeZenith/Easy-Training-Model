@@ -1,8 +1,11 @@
 import json
 import locale as sys_locale
+import logging
 import os
 
 from PySide6.QtCore import QObject, Signal
+
+logger = logging.getLogger("EasyTinking")
 
 
 class I18n(QObject):
@@ -52,6 +55,7 @@ class I18n(QObject):
             if lang.startswith("zh"):
                 return "zh"
         except Exception:
+            logger.warning("Failed to detect system language")
             pass
         return "en"
 

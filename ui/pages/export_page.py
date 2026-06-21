@@ -1,5 +1,6 @@
 """Export / Deploy page - Full implementation"""
 
+import logging
 import os
 import time
 
@@ -26,7 +27,10 @@ from PySide6.QtWidgets import (
 
 from core.exporter import Exporter
 from core.ollama_deployer import OllamaDeployer
-from core.trainer import ProcessTrainer
+from core.services.export_service import detect_format, find_gguf, find_safetensors_dir
+from core.services.train_service import list_loras_for_combo
+
+logger = logging.getLogger("EasyTinking")
 
 
 class ExportPage(QWidget):
@@ -220,19 +224,12 @@ class ExportPage(QWidget):
     def _load_loras(self):
         """Load trained LoRA adapter list"""
         self._lora_combo.clear()
-        trainer = ProcessTrainer(self._config.workspace)
-        loras = trainer.list_loras()
-        for lora in loras:
-            meta = lora.get("metadata", {})
-            model_path = meta.get("model_path", "")
-            name = lora["name"]
-            if model_path:
-                self._lora_combo.addItem(f"{name} -> {os.path.basename(model_path)}",
-                                         userData={"lora_path": lora["path"], "model_path": model_path})
-            else:
-                self._lora_combo.addItem(name,
-                                         userData={"lora_path": lora["path"], "model_path": ""})
-
+        loras = list_loras_for_combo(self._config.workspace)
+        for item in loras:
+            self._lora_combo.addItem(
+                item["display"],
+                userData={"lora_path": item["lora_path"], "model_path": item["model_path"]}
+            )
         if not loras:
             self._lora_combo.addItem("(No LoRA found)", userData={})
 
@@ -255,6 +252,7 @@ class ExportPage(QWidget):
                     # Auto-set export name
                     self._name_edit.setText(os.path.basename(lora_path))
                 except Exception:
+                    logger.warning(f"Failed to read LoRA metadata {meta_path}")
                     self._lora_info_label.setText(lora_path)
 
     def _on_export(self):
@@ -347,33 +345,12 @@ class ExportPage(QWidget):
             row = self._export_table.rowCount()
             self._export_table.insertRow(row)
             self._export_table.setItem(row, 0, QTableWidgetItem(exp["name"]))
-            fmt = self._detect_format(exp["path"])
+            fmt = detect_format(exp["path"])
             self._export_table.setItem(row, 1, QTableWidgetItem(fmt))
             size_mb = exp["size"] / (1024 * 1024) if exp["size"] > 0 else 0
             self._export_table.setItem(row, 2, QTableWidgetItem(f"{size_mb:.1f} MB"))
             t = time.strftime("%Y-%m-%d %H:%M", time.localtime(exp["export_time"])) if exp["export_time"] else ""
             self._export_table.setItem(row, 3, QTableWidgetItem(t))
-
-    @staticmethod
-    def _detect_format(path: str) -> str:
-        """Detect export format from directory contents"""
-        if os.path.isfile(os.path.join(path, "model-F16.gguf")):
-            return "GGUF F16"
-        if os.path.isfile(os.path.join(path, "model-Q4_K_M.gguf")):
-            return "GGUF Q4"
-        if os.path.isfile(os.path.join(path, "model-Q8_0.gguf")):
-            return "GGUF Q8"
-        if os.path.isdir(os.path.join(path, "model_16bit")):
-            return "16-bit"
-        if os.path.isdir(os.path.join(path, "lora_adapter")):
-            return "LoRA"
-        for f in os.listdir(path) if os.path.isdir(path) else []:
-            if f.endswith(".gguf"):
-                return "GGUF"
-        for f in os.listdir(path) if os.path.isdir(path) else []:
-            if f.endswith(".safetensors"):
-                return "SafeTensors"
-        return "-"
 
     def _detect_ollama(self):
         """Detect if Ollama is installed"""
@@ -410,11 +387,11 @@ class ExportPage(QWidget):
             return
 
         # 1. Find GGUF file first
-        model_path = self._find_gguf(export_dir)
+        model_path = find_gguf(export_dir)
 
         # 2. No GGUF -> find safetensors directory
         if not model_path:
-            safetensors_dir = self._find_safetensors_dir(export_dir)
+            safetensors_dir = find_safetensors_dir(export_dir)
             if safetensors_dir:
                 model_path = safetensors_dir
             else:
@@ -449,30 +426,6 @@ class ExportPage(QWidget):
         else:
             QMessageBox.critical(self, self._i18n.t("common.error"),
                                  self._i18n.t("export.deploy_fail") + f": {output}")
-
-    def _find_gguf(self, directory: str) -> str:
-        """Recursively find GGUF file"""
-        for root, dirs, files in os.walk(directory):
-            for f in files:
-                if f.endswith(".gguf"):
-                    return os.path.join(root, f)
-        return ""
-
-    def _find_safetensors_dir(self, directory: str) -> str:
-        """Find directory containing config.json + safetensors (HuggingFace format)"""
-        # Check current directory
-        if os.path.isfile(os.path.join(directory, "config.json")):
-            for f in os.listdir(directory):
-                if f.endswith(".safetensors"):
-                    return directory
-        # Check subdirectories (e.g. model_16bit/)
-        for entry in os.listdir(directory):
-            sub = os.path.join(directory, entry)
-            if os.path.isdir(sub) and os.path.isfile(os.path.join(sub, "config.json")):
-                for f in os.listdir(sub):
-                    if f.endswith(".safetensors"):
-                        return sub
-        return ""
 
     def _on_run(self):
         """Run Ollama model"""

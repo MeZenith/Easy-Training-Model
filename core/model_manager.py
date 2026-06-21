@@ -181,7 +181,7 @@ class ModelManager:
                 if rough > 0:
                     return f"{rough}B"
         except Exception:
-            pass
+            logger.warning("Failed to estimate params from config")
         return "-"
 
     @staticmethod
@@ -285,7 +285,7 @@ class ModelManager:
                 with open(config_path, "r", encoding="utf-8") as f:
                     detail["config"] = json.load(f)
             except Exception:
-                pass
+                logger.warning(f"Failed to read model config {config_path}")
 
         if os.path.isdir(model_path):
             for f in os.listdir(model_path):

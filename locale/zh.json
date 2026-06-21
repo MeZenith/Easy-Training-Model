@@ -272,5 +272,8 @@
   "settings.lang_zh": "中文",
   "settings.lang_en": "English",
   "settings.proxy_http": "HTTP",
-  "settings.proxy_socks5": "SOCKS5"
+  "settings.proxy_socks5": "SOCKS5",
+  "test.temperature": "Temperature",
+  "test.top_p": "Top-p",
+  "test.max_tokens": "Max Tokens"
 }

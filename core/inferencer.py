@@ -79,7 +79,7 @@ class Inferencer(QObject):
                 self._process.waitForBytesWritten(1000)
                 self._process.waitForFinished(3000)
             except Exception:
-                pass
+                logger.warning("Failed to gracefully quit inference process")
             if self._process.state() != QProcess.NotRunning:
                 self._process.kill()
 
