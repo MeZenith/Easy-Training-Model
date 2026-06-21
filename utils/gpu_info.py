@@ -1,8 +1,8 @@
 """GPU 信息获取工具"""
 
+import logging
 import os
 import subprocess
-import logging
 
 logger = logging.getLogger("EasyTinking")
 

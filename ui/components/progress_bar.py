@@ -1,7 +1,7 @@
 """自定义进度条组件"""
 
-from PySide6.QtWidgets import QWidget, QHBoxLayout, QLabel, QProgressBar
 from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QHBoxLayout, QLabel, QProgressBar, QWidget
 
 
 class CustomProgressBar(QWidget):

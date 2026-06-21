@@ -1,9 +1,8 @@
 """Ollama 部署"""
 
+import logging
 import os
 import subprocess
-import logging
-from typing import Optional
 
 logger = logging.getLogger("EasyTinking")
 

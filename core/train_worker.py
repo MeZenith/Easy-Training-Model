@@ -12,12 +12,11 @@
 不依赖 trainer.py / trl / accelerate / datasets 等外部训练框架。
 """
 
-import sys
-import os
-import json
-import time
-import math
 import argparse
+import json
+import os
+import sys
+import time
 
 # Force UTF-8 encoding for stdout when piped to QProcess on Windows
 if hasattr(sys.stdout, "reconfigure"):
@@ -73,7 +72,7 @@ def main():
         log(f"ERROR:ERR_MODEL:Model path not found: {model_path}")
         sys.exit(1)
     if not data:
-        log(f"ERROR:ERR_DATA:No training data")
+        log("ERROR:ERR_DATA:No training data")
         sys.exit(1)
 
     log(f"LOG:Model: {os.path.basename(model_path)}")
@@ -128,7 +127,7 @@ def main():
     # ---- peft ----
     progress(6, "Importing peft...")
     try:
-        from peft import LoraConfig, get_peft_model, TaskType
+        from peft import LoraConfig, TaskType, get_peft_model
     except Exception as e:
         log(f"ERROR:ERR_PEFT:{e}")
         sys.exit(1)
@@ -152,11 +151,11 @@ def main():
 
     # ---- 分词数据 ----
     progress(10, "Tokenizing dataset...")
-    TASK_TEMPLATE = "### Instruction:\n{instruction}\n### Input:\n{input}\n### Response:\n{output}"
+    task_template = "### Instruction:\n{instruction}\n### Input:\n{input}\n### Response:\n{output}"
 
     tokenized_items = []
     for item in data:
-        text = TASK_TEMPLATE.format(
+        text = task_template.format(
             instruction=item.get("instruction", ""),
             input=item.get("input", ""),
             output=item.get("output", ""),

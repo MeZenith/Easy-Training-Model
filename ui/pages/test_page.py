@@ -2,18 +2,28 @@
 
 import html
 import os
-import time
+
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QTextEdit, QLineEdit, QSplitter, QSlider, QGroupBox,
-    QFormLayout, QFrame, QComboBox, QFileDialog, QMessageBox
+    QComboBox,
+    QFileDialog,
+    QFormLayout,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QMessageBox,
+    QPushButton,
+    QSlider,
+    QSplitter,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
 )
-from PySide6.QtCore import Qt, Signal
 
 from core.error_handler import friendly_error_message
-from core.trainer import ProcessTrainer
 from core.inferencer import Inferencer
-
+from core.trainer import ProcessTrainer
 
 PRESET_QUESTION_KEYS = [
     "test.preset_q1",

@@ -1,9 +1,11 @@
 """导出逻辑"""
 
-import os
-import json
-import shutil
 import logging
+import os
+import shutil
+
+import torch
+
 from utils.worker import BaseWorker
 
 logger = logging.getLogger("EasyTinking")
@@ -54,8 +56,8 @@ class ExportWorker(BaseWorker):
 
     def _export_16bit(self, out_dir: str) -> list:
         """导出 16 位完整模型（合并 LoRA 适配器）"""
-        from transformers import AutoModelForCausalLM, AutoTokenizer
         from peft import PeftModel
+        from transformers import AutoModelForCausalLM, AutoTokenizer
 
         self.signals.log.emit("Loading base model...")
         model = AutoModelForCausalLM.from_pretrained(
@@ -90,9 +92,8 @@ class ExportWorker(BaseWorker):
 
     def _export_gguf(self, out_dir: str, quantization: str) -> list:
         """导出 GGUF 格式 — 使用 gguf 库完整写入 tokenizer 元数据"""
-        from transformers import AutoModelForCausalLM, AutoTokenizer, AutoConfig
         from peft import PeftModel
-        from gguf import GGUFWriter, TokenType
+        from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
 
         self.signals.log.emit("Loading base model for GGUF...")
         model = AutoModelForCausalLM.from_pretrained(
@@ -117,7 +118,7 @@ class ExportWorker(BaseWorker):
         self._write_gguf_file(f16_path, config, tokenizer, state_dict)
 
         if quantization == "F16":
-            final_path = os.path.join(out_dir, f"model-F16.gguf")
+            final_path = os.path.join(out_dir, "model-F16.gguf")
             os.replace(f16_path, final_path)
         else:
             final_path = os.path.join(out_dir, f"model-{quantization}.gguf")
@@ -130,8 +131,8 @@ class ExportWorker(BaseWorker):
     @staticmethod
     def _write_gguf_file(path: str, config, tokenizer, state_dict: dict):
         """将 HF 模型写入完整 GGUF 文件（含 tokenizer 元数据）"""
+
         from gguf import GGUFWriter, TokenType
-        import json as _json
 
         arch = getattr(config, "model_type", "qwen2")
         writer = GGUFWriter(path, arch)

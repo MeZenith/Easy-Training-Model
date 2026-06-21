@@ -1,19 +1,32 @@
 """Export / Deploy page - Full implementation"""
 
 import os
-from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QComboBox, QGroupBox, QFormLayout, QCheckBox,
-    QTableWidget, QTableWidgetItem, QHeaderView, QLineEdit,
-    QTextEdit, QProgressBar, QFileDialog, QMessageBox
-)
-from PySide6.QtCore import Qt, Signal
 import time
 
-from core.exporter import Exporter, ExportWorker
-from core.trainer import ProcessTrainer
+from PySide6.QtCore import Signal
+from PySide6.QtWidgets import (
+    QCheckBox,
+    QComboBox,
+    QFileDialog,
+    QFormLayout,
+    QGroupBox,
+    QHBoxLayout,
+    QHeaderView,
+    QLabel,
+    QLineEdit,
+    QMessageBox,
+    QProgressBar,
+    QPushButton,
+    QTableWidget,
+    QTableWidgetItem,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
+)
+
+from core.exporter import Exporter
 from core.ollama_deployer import OllamaDeployer
-from core.error_handler import friendly_error_message
+from core.trainer import ProcessTrainer
 
 
 class ExportPage(QWidget):
@@ -186,7 +199,7 @@ class ExportPage(QWidget):
 
         scroll_layout.addStretch()
 
-        from PySide6.QtWidgets import QScrollArea, QFrame
+        from PySide6.QtWidgets import QFrame, QScrollArea
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.NoFrame)
@@ -227,7 +240,6 @@ class ExportPage(QWidget):
         """LoRA selection changed"""
         data = self._lora_combo.currentData() or {}
         lora_path = data.get("lora_path", "")
-        model_path = data.get("model_path", "")
         if lora_path:
             meta_path = os.path.join(lora_path, "metadata.json")
             if os.path.isfile(meta_path):

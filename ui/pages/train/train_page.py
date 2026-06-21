@@ -1,14 +1,17 @@
 """Training Center — orchestrates config panel and monitor panel via QStackedWidget"""
 
-import os
 import logging
-from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QStackedWidget, QMessageBox,
-)
+import os
+
 from PySide6.QtCore import Signal
+from PySide6.QtWidgets import (
+    QMessageBox,
+    QStackedWidget,
+    QVBoxLayout,
+    QWidget,
+)
 
 from core.trainer import ProcessTrainer
-from core.error_handler import friendly_error_message
 from ui.pages.train.config_panel import TrainConfigPanel
 from ui.pages.train.monitor_panel import TrainMonitorPanel
 

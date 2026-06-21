@@ -3,22 +3,21 @@
 程序入口
 """
 
-import sys
 import os
+import sys
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 if BASE_DIR not in sys.path:
     sys.path.insert(0, BASE_DIR)
 
-from PySide6.QtWidgets import QApplication
-from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QApplication  # noqa: E402
 
-from setup_icon import setup_app_icon, set_window_icon
-from core.config import AppConfig
-from utils.i18n import I18n
-from utils.logger import setup_logger
-from ui.theme import ThemeManager
-from ui.app import MainWindow, global_exception_handler
+from core.config import AppConfig  # noqa: E402
+from setup_icon import set_window_icon, setup_app_icon  # noqa: E402
+from ui.app import MainWindow, global_exception_handler  # noqa: E402
+from ui.theme import ThemeManager  # noqa: E402
+from utils.i18n import I18n  # noqa: E402
+from utils.logger import setup_logger  # noqa: E402
 
 
 def main():

@@ -2,16 +2,27 @@
 
 import os
 
-from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QTableWidget, QTableWidgetItem, QHeaderView, QListWidget,
-    QListWidgetItem, QSplitter, QFrame, QFileDialog, QMessageBox, QDialog,
-    QLineEdit, QTextEdit, QDialogButtonBox, QFormLayout,
-    QGroupBox, QCheckBox, QInputDialog
-)
 from PySide6.QtCore import Qt, Signal
+from PySide6.QtWidgets import (
+    QDialog,
+    QDialogButtonBox,
+    QFileDialog,
+    QFormLayout,
+    QHBoxLayout,
+    QInputDialog,
+    QLabel,
+    QLineEdit,
+    QListWidget,
+    QListWidgetItem,
+    QMessageBox,
+    QPushButton,
+    QSplitter,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
+)
 
-from core.data_manager import DataManager, Dataset
+from core.data_manager import DataManager
 from core.error_handler import friendly_error_message
 from ui.components.data_table import DataTable
 

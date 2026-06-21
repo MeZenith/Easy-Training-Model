@@ -1,9 +1,7 @@
 """Tests for core/config.py — AppConfig thread-safe JSON configuration"""
 
 import os
-import json
 import tempfile
-import pytest
 
 from core.config import AppConfig
 

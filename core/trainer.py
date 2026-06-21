@@ -1,14 +1,12 @@
 """训练逻辑"""
 
+import json
+import logging
 import os
 import sys
-import json
-import time
-import logging
 import tempfile
-from typing import Optional
 
-from PySide6.QtCore import QProcess, QObject, Signal
+from PySide6.QtCore import QObject, QProcess, Signal
 
 logger = logging.getLogger("EasyTinking")
 

@@ -2,18 +2,30 @@
 
 import os
 import shutil
-from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QLabel, QHBoxLayout, QPushButton,
-    QScrollArea, QFrame, QGridLayout, QFileDialog, QMessageBox,
-    QComboBox, QLineEdit, QFormLayout, QGroupBox, QListWidget,
-    QListWidgetItem, QMenu, QDialog, QDialogButtonBox, QTextEdit,
-    QSizePolicy, QProgressBar, QInputDialog
-)
-from PySide6.QtCore import Qt, Signal, QThread
-from PySide6.QtGui import QAction
 
-from core.model_manager import ModelManager, BUILTIN_MODELS
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtWidgets import (
+    QComboBox,
+    QFileDialog,
+    QFormLayout,
+    QFrame,
+    QGroupBox,
+    QHBoxLayout,
+    QInputDialog,
+    QLabel,
+    QLineEdit,
+    QListWidget,
+    QMessageBox,
+    QProgressBar,
+    QPushButton,
+    QScrollArea,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
+)
+
 from core.error_handler import friendly_error_message
+from core.model_manager import BUILTIN_MODELS, ModelManager
 from core.trainer import ProcessTrainer
 from core.workers.download_worker import DownloadWorker
 from ui.components.model_card import ModelCard

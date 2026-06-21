@@ -1,9 +1,7 @@
 """数据编辑表格组件"""
 
-from PySide6.QtWidgets import (
-    QTableWidget, QTableWidgetItem, QHeaderView, QMenu
-)
 from PySide6.QtCore import Qt, Signal
+from PySide6.QtWidgets import QHeaderView, QMenu, QTableWidget, QTableWidgetItem
 
 
 class DataTable(QTableWidget):

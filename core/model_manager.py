@@ -1,8 +1,8 @@
 """模型下载/管理/校验"""
 
-import os
 import json
 import logging
+import os
 import time
 from typing import Optional
 
@@ -176,7 +176,6 @@ class ModelManager:
         try:
             hidden = cfg.get("hidden_size", 0)
             layers = cfg.get("num_hidden_layers", 0)
-            heads = cfg.get("num_attention_heads", 0)
             if hidden and layers:
                 rough = (hidden * hidden * 4 * layers) // (10 ** 9)
                 if rough > 0:

@@ -1,29 +1,38 @@
 """主窗口与导航"""
 
+import logging
 import os
 import sys
-import logging
-from PySide6.QtWidgets import (
-    QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel,
-    QPushButton, QStackedWidget, QStatusBar, QFrame, QSizePolicy,
-    QMessageBox, QListWidget, QListWidgetItem
-)
-from PySide6.QtCore import Qt, QSize, QTimer
-from PySide6.QtGui import QIcon, QFont, QKeySequence, QShortcut
 
+from PySide6.QtCore import QSize, Qt, QTimer
+from PySide6.QtGui import QIcon, QKeySequence, QShortcut
+from PySide6.QtWidgets import (
+    QHBoxLayout,
+    QLabel,
+    QListWidget,
+    QListWidgetItem,
+    QMainWindow,
+    QMessageBox,
+    QPushButton,
+    QStackedWidget,
+    QStatusBar,
+    QVBoxLayout,
+    QWidget,
+)
+
+from assess.nav_icons import ICON_MAP
 from core.config import AppConfig
 from core.error_handler import friendly_error_message
-from utils.i18n import I18n
-from ui.theme import ThemeManager
-from ui.pages.model_page import ModelPage
 from ui.pages.data_page import DataPage
-from ui.pages.train import TrainPage
 from ui.pages.export_page import ExportPage
-from ui.pages.test_page import TestPage
-from ui.pages.settings_page import SettingsPage
 from ui.pages.logs_page import LogsPage
+from ui.pages.model_page import ModelPage
+from ui.pages.settings_page import SettingsPage
+from ui.pages.test_page import TestPage
+from ui.pages.train import TrainPage
+from ui.theme import ThemeManager
 from utils.gpu_info import get_gpu_info
-from assess.nav_icons import ICON_MAP
+from utils.i18n import I18n
 
 logger = logging.getLogger("EasyTinking")
 
@@ -81,8 +90,8 @@ class MainWindow(QMainWindow):
         """Apply Windows 11 native rounded corners via DWM API"""
         try:
             import ctypes
-            DWMWA_WINDOW_CORNER_PREFERENCE = 33
-            DWMWCP_ROUND = 2
+            DWMWA_WINDOW_CORNER_PREFERENCE = 33  # noqa: N806
+            DWMWCP_ROUND = 2  # noqa: N806
             hwnd = int(self.winId())
             ctypes.windll.dwmapi.DwmSetWindowAttribute(
                 hwnd,

@@ -1,7 +1,7 @@
 """导航栏图标 — QPainter 自绘，跨平台可靠"""
 
-from PySide6.QtGui import QIcon, QPixmap, QPainter, QPen, QColor, QBrush, QPolygonF
-from PySide6.QtCore import Qt, QPointF, QRectF
+from PySide6.QtCore import QPointF, QRectF, Qt
+from PySide6.QtGui import QColor, QIcon, QPainter, QPen, QPixmap
 
 _SIZE = 18
 _PAD = 3

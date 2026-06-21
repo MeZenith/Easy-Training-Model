@@ -1,11 +1,17 @@
 """Training monitor panel — loss chart, progress bar, result display"""
 
 import os
-from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QProgressBar, QGridLayout,
-)
+
 from PySide6.QtCore import Signal
+from PySide6.QtWidgets import (
+    QGridLayout,
+    QHBoxLayout,
+    QLabel,
+    QProgressBar,
+    QPushButton,
+    QVBoxLayout,
+    QWidget,
+)
 
 from ui.components.loss_chart import LossChart
 

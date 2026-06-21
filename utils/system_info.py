@@ -1,9 +1,8 @@
 """系统信息检测"""
 
-import platform
-import os
-import sys
 import logging
+import os
+import platform
 
 logger = logging.getLogger("EasyTinking")
 

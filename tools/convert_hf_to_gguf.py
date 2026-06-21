@@ -3,13 +3,12 @@
 用法: python tools/convert_hf_to_gguf.py <model_dir> <output.gguf>
 """
 
-import sys
 import os
-import json
+import sys
+
 import torch
-import numpy as np
-from transformers import AutoConfig, AutoTokenizer, AutoModelForCausalLM
 from gguf import GGUFWriter, TokenType
+from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
 
 
 def convert(model_dir: str, output_path: str):

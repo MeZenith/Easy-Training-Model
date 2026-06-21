@@ -1,8 +1,7 @@
 """Loss 曲线图组件"""
 
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QPushButton, QHBoxLayout
-from PySide6.QtCore import Qt
 import pyqtgraph as pg
+from PySide6.QtWidgets import QHBoxLayout, QPushButton, QVBoxLayout, QWidget
 
 
 class LossChart(QWidget):
@@ -83,8 +82,9 @@ class LossChart(QWidget):
 
     def export_png(self):
         """导出为 PNG 文件"""
-        from PySide6.QtWidgets import QFileDialog
         import time
+
+        from PySide6.QtWidgets import QFileDialog
         path, _ = QFileDialog.getSaveFileName(
             self, "Export PNG", f"loss_{time.strftime('%Y%m%d_%H%M%S')}.png",
             "PNG (*.png)"

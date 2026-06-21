@@ -1,6 +1,7 @@
 """GGUF 量化：F16 → Q8_0 / Q4_K_M"""
-import sys, os
-import numpy as np
+import os
+import sys
+
 from gguf import GGUFReader, GGUFWriter
 from gguf.quants import quantize
 

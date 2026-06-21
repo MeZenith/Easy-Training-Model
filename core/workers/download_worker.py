@@ -3,8 +3,9 @@
 继承 BaseWorker，在子线程中执行耗时下载操作，通过 Signal 报告进度。
 """
 
-import os
 import logging
+import os
+
 from utils.worker import BaseWorker
 
 logger = logging.getLogger("EasyTinking")

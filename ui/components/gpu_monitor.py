@@ -1,7 +1,7 @@
 """GPU 显存监控条组件"""
 
-from PySide6.QtWidgets import QWidget, QHBoxLayout, QLabel, QProgressBar
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import QTimer
+from PySide6.QtWidgets import QHBoxLayout, QLabel, QProgressBar, QWidget
 
 from utils.gpu_info import get_gpu_info
 

@@ -1,12 +1,12 @@
 """推理 QProcess 管理器 — 与训练相同的子进程隔离模式"""
 
-import os
-import sys
 import json
 import logging
+import os
+import sys
 import tempfile
 
-from PySide6.QtCore import QProcess, QProcessEnvironment, QObject, Signal
+from PySide6.QtCore import QObject, QProcess, QProcessEnvironment, Signal
 
 logger = logging.getLogger("EasyTinking")
 

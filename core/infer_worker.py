@@ -16,11 +16,11 @@
 CUDA 操作全部隔离在子进程，避免 Qt 主线程崩溃。
 """
 
-import sys
-import os
-import json
-import time
 import argparse
+import json
+import os
+import sys
+import time
 
 # Force UTF-8 encoding for stdout when piped to QProcess on Windows
 if hasattr(sys.stdout, "reconfigure"):

@@ -1,12 +1,21 @@
 """Runtime logs page - Full implementation"""
 
-import os
 import logging
+import os
+
+from PySide6.QtCore import QObject, Signal, Slot
 from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QTextEdit, QComboBox, QLineEdit, QFileDialog, QMessageBox
+    QComboBox,
+    QFileDialog,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QMessageBox,
+    QPushButton,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
 )
-from PySide6.QtCore import Qt, Slot, Signal, QObject
 
 
 class LogHandler(QObject):

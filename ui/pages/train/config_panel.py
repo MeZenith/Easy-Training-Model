@@ -1,17 +1,32 @@
 """Training config panel — model/dataset selection, parameters, presets, pre-check"""
 
-import os
 import logging
-from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QComboBox, QSpinBox, QDoubleSpinBox, QCheckBox, QGroupBox,
-    QFormLayout, QScrollArea, QFrame, QListWidget, QListWidgetItem,
-    QMessageBox, QDialog, QLineEdit, QTextEdit, QDialogButtonBox,
-)
-from PySide6.QtCore import Qt, Signal
+import os
 
-from core.model_manager import ModelManager
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtWidgets import (
+    QComboBox,
+    QDialog,
+    QDialogButtonBox,
+    QDoubleSpinBox,
+    QFormLayout,
+    QFrame,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QListWidget,
+    QListWidgetItem,
+    QPushButton,
+    QScrollArea,
+    QSpinBox,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
+)
+
 from core.data_manager import DataManager
+from core.model_manager import ModelManager
 from ui.components.gpu_monitor import GPUMonitor
 
 logger = logging.getLogger("EasyTinking")

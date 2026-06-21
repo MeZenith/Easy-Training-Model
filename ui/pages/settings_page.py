@@ -1,13 +1,23 @@
 """系统设置页"""
 
-from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QComboBox, QLineEdit, QGroupBox, QFormLayout, QFileDialog,
-    QScrollArea, QFrame, QTextEdit
-)
-from PySide6.QtCore import Qt
-
 import logging
+
+from PySide6.QtWidgets import (
+    QComboBox,
+    QFileDialog,
+    QFormLayout,
+    QFrame,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QPushButton,
+    QScrollArea,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
+)
+
 logger = logging.getLogger("EasyTinking")
 
 
@@ -157,14 +167,14 @@ class SettingsPage(QWidget):
         theme = self._theme_combo.currentData()
         if theme:
             self._config.set("theme", theme)
-            from ui.theme import ThemeManager
             from PySide6.QtWidgets import QApplication
+
+            from ui.theme import ThemeManager
             app = QApplication.instance()
             if app:
                 ThemeManager.instance().apply_theme(app, theme)
 
     def _on_browse_workspace(self):
-        from PySide6.QtWidgets import QFileDialog
         dir_path = QFileDialog.getExistingDirectory(self, self._i18n.t("settings.workspace"))
         if dir_path:
             self._ws_edit.setText(dir_path)
@@ -191,7 +201,7 @@ class SettingsPage(QWidget):
 
     def _load_gpu_info(self):
         try:
-            from utils.gpu_info import get_gpu_info, get_cuda_version
+            from utils.gpu_info import get_cuda_version, get_gpu_info
             gpus = get_gpu_info()
             cuda_ver = get_cuda_version()
             lines = []

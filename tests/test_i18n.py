@@ -1,9 +1,8 @@
 """Tests for utils/i18n.py — internationalization manager"""
 
+import json
 import os
 import tempfile
-import json
-import pytest
 
 from utils.i18n import I18n
 

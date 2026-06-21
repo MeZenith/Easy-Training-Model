@@ -1,4 +1,4 @@
-from PySide6.QtCore import QThread, QObject, Signal
+from PySide6.QtCore import QObject, QThread, Signal
 
 
 class WorkerSignals(QObject):

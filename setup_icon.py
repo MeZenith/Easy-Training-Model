@@ -8,8 +8,8 @@
     set_window_icon(window)   # 窗口也设一份
 """
 
-import sys
 import os
+import sys
 from pathlib import Path
 
 APP_NAME = "EasyTinking"

@@ -1,6 +1,7 @@
 import json
-import os
 import locale as sys_locale
+import os
+
 from PySide6.QtCore import QObject, Signal
 
 
