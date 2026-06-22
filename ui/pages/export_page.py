@@ -26,18 +26,14 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from core.exporter import Exporter, ExportWorker
+from core.exporter import Exporter
+from core.exporter_process import ProcessExporter
 from core.model_manager import ModelManager
 from core.ollama_deployer import OllamaDeployer
 from core.services.export_service import detect_format, find_gguf, find_safetensors_dir
 from core.services.train_service import list_loras_for_combo
 
 logger = logging.getLogger("EasyTinking")
-
-QUANT_INFO = {
-    "Q4_K_M": "~2 GB (4-bit)", "Q8_0": "~3.2 GB (8-bit)",
-    "F16": "~6 GB (lossless)",
-}
 
 
 class ExportPage(QWidget):
@@ -47,27 +43,29 @@ class ExportPage(QWidget):
         super().__init__(parent)
         self._config = config
         self._i18n = i18n
-        self._export_worker = None
+        self._exporter_process = None
 
-        self._exporter = Exporter(config.get("export_dir", ""))
+        export_dir = config.get("export_dir", "")
+        if not export_dir:
+            export_dir = os.path.join(config.workspace, "exports")
+            config.set("export_dir", export_dir)
+        self._exporter = Exporter(export_dir)
         self._deployer = OllamaDeployer()
         self._models_dir = config.get("download_dir", os.path.join(config.workspace, "models"))
-        self._lora_dir = os.path.join(config.workspace, "lora")
 
         self._setup_ui()
         self._connect_signals()
         self._i18n.language_changed.connect(self._refresh_texts)
 
-    # ── UI setup ──────────────────────────────────────────────
+    # ── UI ────────────────────────────────────────────────────
 
     def _setup_ui(self):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(16, 16, 16, 16)
 
-        title = QLabel()
-        title.setStyleSheet("font-size: 20px; font-weight: bold;")
-        layout.addWidget(title)
-        self._title_label = title
+        self._title_label = QLabel()
+        self._title_label.setStyleSheet("font-size: 20px; font-weight: bold;")
+        layout.addWidget(self._title_label)
 
         splitter = QSplitter(Qt.Horizontal)
         layout.addWidget(splitter, 1)
@@ -88,26 +86,30 @@ class ExportPage(QWidget):
         layout.setContentsMargins(0, 0, 8, 0)
         layout.setSpacing(8)
 
-        # ── Model / LoRA / Path ──
+        # ── Config ──
         g = QGroupBox()
         f = QFormLayout(g)
         self._model_combo = QComboBox()
         self._model_combo.setMinimumWidth(200)
-        f.addRow("Base Model:", self._model_combo)
+        self._model_label = QLabel()
+        f.addRow(self._model_label, self._model_combo)
 
         self._lora_combo = QComboBox()
-        f.addRow("LoRA:", self._lora_combo)
+        self._lora_label = QLabel()
+        f.addRow(self._lora_label, self._lora_combo)
 
         dir_row = QHBoxLayout()
         self._dir_edit = QLineEdit(self._config.get("export_dir", ""))
         self._dir_edit.setReadOnly(True)
         dir_row.addWidget(self._dir_edit, 1)
-        self._dir_browse_btn = QPushButton("...")
+        self._dir_browse_btn = QPushButton()
         dir_row.addWidget(self._dir_browse_btn)
-        f.addRow("Export Dir:", dir_row)
+        self._dir_label = QLabel()
+        f.addRow(self._dir_label, dir_row)
 
         self._name_edit = QLineEdit()
-        f.addRow("Name:", self._name_edit)
+        self._name_label = QLabel()
+        f.addRow(self._name_label, self._name_edit)
 
         layout.addWidget(g)
         self._cfg_group = g
@@ -115,12 +117,12 @@ class ExportPage(QWidget):
         # ── Formats ──
         g2 = QGroupBox()
         fl = QVBoxLayout(g2)
-        self._fmt_16bit = QCheckBox("16-bit Full Model (~6 GB)")
-        self._fmt_q4 = QCheckBox("GGUF Q4_K_M (~2 GB, 4-bit)")
+        self._fmt_16bit = QCheckBox()
+        self._fmt_q4 = QCheckBox()
         self._fmt_q4.setChecked(True)
-        self._fmt_q8 = QCheckBox("GGUF Q8_0 (~3.2 GB, 8-bit)")
-        self._fmt_f16 = QCheckBox("GGUF F16 (~6 GB, lossless)")
-        self._fmt_lora = QCheckBox("LoRA Adapter Only (~120 MB)")
+        self._fmt_q8 = QCheckBox()
+        self._fmt_f16 = QCheckBox()
+        self._fmt_lora = QCheckBox()
         for cb in [self._fmt_16bit, self._fmt_q4, self._fmt_q8, self._fmt_f16, self._fmt_lora]:
             fl.addWidget(cb)
         layout.addWidget(g2)
@@ -128,7 +130,7 @@ class ExportPage(QWidget):
 
         # ── Export button + Progress ──
         btn_row = QHBoxLayout()
-        self._export_btn = QPushButton("Start Export")
+        self._export_btn = QPushButton()
         self._export_btn.setObjectName("primaryBtn")
         self._export_btn.setMinimumHeight(36)
         btn_row.addWidget(self._export_btn)
@@ -160,7 +162,7 @@ class ExportPage(QWidget):
         # ── Ollama status ──
         status_row = QHBoxLayout()
         self._ollama_status_label = QLabel()
-        self._ollama_detect_btn = QPushButton("Detect")
+        self._ollama_detect_btn = QPushButton()
         status_row.addWidget(self._ollama_status_label, 1)
         status_row.addWidget(self._ollama_detect_btn)
         layout.addLayout(status_row)
@@ -170,25 +172,29 @@ class ExportPage(QWidget):
         f = QFormLayout(g)
 
         self._export_selector = QComboBox()
-        f.addRow("Export:", self._export_selector)
+        self._export_pick_label = QLabel()
+        f.addRow(self._export_pick_label, self._export_selector)
 
         self._gguf_path_label = QLabel()
         self._gguf_path_label.setStyleSheet("color: #8b949e; font-size: 11px;")
         self._gguf_path_label.setWordWrap(True)
-        f.addRow("Path:", self._gguf_path_label)
+        self._deploy_path_label = QLabel()
+        f.addRow(self._deploy_path_label, self._gguf_path_label)
 
         self._ollama_name_edit = QLineEdit(self._config.get("ollama_name", "my-model"))
-        f.addRow("Model Name:", self._ollama_name_edit)
+        self._deploy_name_label = QLabel()
+        f.addRow(self._deploy_name_label, self._ollama_name_edit)
 
         self._system_prompt_edit = QTextEdit()
         self._system_prompt_edit.setMaximumHeight(80)
         self._system_prompt_edit.setPlaceholderText("You are a helpful assistant.")
-        f.addRow("System:", self._system_prompt_edit)
+        self._deploy_system_label = QLabel()
+        f.addRow(self._deploy_system_label, self._system_prompt_edit)
 
         btn_row = QHBoxLayout()
-        self._deploy_btn = QPushButton("Create Model")
+        self._deploy_btn = QPushButton()
         self._deploy_btn.setObjectName("primaryBtn")
-        self._run_btn = QPushButton("Run in Terminal")
+        self._run_btn = QPushButton()
         btn_row.addWidget(self._deploy_btn)
         btn_row.addWidget(self._run_btn)
         btn_row.addStretch()
@@ -196,19 +202,18 @@ class ExportPage(QWidget):
         layout.addWidget(g)
         self._deploy_group = g
 
-        # ── Exported models table ──
+        # ── Exported ──
         g2 = QGroupBox()
         el = QVBoxLayout(g2)
         self._export_table = QTableWidget()
         self._export_table.setColumnCount(4)
-        self._export_table.setHorizontalHeaderLabels(["Name", "Format", "Size", "Time"])
-        self._export_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self._export_table.setSelectionBehavior(QTableWidget.SelectRows)
+        self._export_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         el.addWidget(self._export_table)
 
         eb = QHBoxLayout()
-        self._export_delete_btn = QPushButton("Delete")
-        self._export_open_btn = QPushButton("Open Dir")
+        self._export_delete_btn = QPushButton()
+        self._export_open_btn = QPushButton()
         eb.addWidget(self._export_delete_btn)
         eb.addWidget(self._export_open_btn)
         eb.addStretch()
@@ -216,19 +221,18 @@ class ExportPage(QWidget):
         layout.addWidget(g2)
         self._exports_list_group = g2
 
-        # ── Ollama models table ──
+        # ── Ollama models ──
         g3 = QGroupBox()
         ol = QVBoxLayout(g3)
         self._ollama_table = QTableWidget()
         self._ollama_table.setColumnCount(3)
-        self._ollama_table.setHorizontalHeaderLabels(["Name", "Size", "Modified"])
-        self._ollama_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self._ollama_table.setSelectionBehavior(QTableWidget.SelectRows)
+        self._ollama_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         ol.addWidget(self._ollama_table)
 
         ob = QHBoxLayout()
-        self._ollama_delete_btn = QPushButton("Delete")
-        self._ollama_run_btn = QPushButton("Run")
+        self._ollama_delete_btn = QPushButton()
+        self._ollama_run_btn = QPushButton()
         ob.addWidget(self._ollama_delete_btn)
         ob.addWidget(self._ollama_run_btn)
         ob.addStretch()
@@ -238,7 +242,7 @@ class ExportPage(QWidget):
 
         return layout
 
-    # ── Signal connections ───────────────────────────────────
+    # ── Signals ───────────────────────────────────────────────
 
     def _connect_signals(self):
         self._export_btn.clicked.connect(self._on_export)
@@ -255,7 +259,7 @@ class ExportPage(QWidget):
         self._ollama_delete_btn.clicked.connect(self._delete_ollama_model)
         self._ollama_run_btn.clicked.connect(self._on_run_ollama)
 
-    # ── Model / LoRA loading ────────────────────────────────
+    # ── Data loading ─────────────────────────────────────────
 
     def _load_models(self):
         self._model_combo.clear()
@@ -280,12 +284,13 @@ class ExportPage(QWidget):
         if lora_path:
             self._name_edit.setText(os.path.basename(lora_path))
 
-    # ── Export logic ────────────────────────────────────────
+    # ── Export (QProcess) ────────────────────────────────────
 
     def _on_export(self):
+        t = self._i18n.t
         model_path = self._model_combo.currentData()
         if not model_path:
-            QMessageBox.warning(self, "Warning", "Please select a base model first")
+            QMessageBox.warning(self, t("common.warning"), t("export.select_model"))
             return
 
         export_name = self._name_edit.text().strip() or "exported_model"
@@ -302,56 +307,57 @@ class ExportPage(QWidget):
             formats.append("lora_only")
 
         if not formats:
-            QMessageBox.warning(self, "Warning", "Please select at least one export format")
+            QMessageBox.warning(self, t("common.warning"), t("export.select_format"))
             return
 
         lora_data = self._lora_combo.currentData() or {}
         lora_path = lora_data.get("lora_path", "")
+        export_dir = self._dir_edit.text()
 
         self._export_btn.setEnabled(False)
         self._progress_bar.setValue(0)
         self._log_output.clear()
-        self._status_label.setText("Starting export...")
+        self._status_label.setText(t("export.exporting"))
 
-        export_dir = self._dir_edit.text() or self._config.workspace + "/exports"
+        cfg = {
+            "model_path": model_path,
+            "lora_path": lora_path,
+            "out_dir": os.path.join(export_dir, export_name),
+            "formats": formats,
+        }
 
-        def on_progress(pct, desc):
-            self._progress_bar.setValue(pct)
-            self._status_label.setText(desc)
+        self._exporter_process = ProcessExporter()
+        self._exporter_process.progress.connect(self._on_export_progress)
+        self._exporter_process.finished.connect(self._on_export_finished)
+        self._exporter_process.error.connect(self._on_export_error)
+        self._exporter_process.log_message.connect(self._append_log)
+        self._exporter_process.start_export(cfg)
 
-        def on_finished(result):
-            self._export_btn.setEnabled(True)
-            self._progress_bar.setValue(100)
-            self._status_label.setText("Export complete!")
-            self._refresh_exports_list()
-            self._refresh_export_selector()
-            self.export_finished.emit(result)
-            errors = result.get("errors", [])
-            if errors:
-                self._append_log(f"Warnings: {errors}")
+    def _on_export_progress(self, pct, desc):
+        self._progress_bar.setValue(pct)
+        self._status_label.setText(desc)
 
-        def on_error(code, detail):
-            self._export_btn.setEnabled(True)
-            self._status_label.setText(f"Error: {detail}")
-            self._append_log(f"ERROR [{code}]: {detail}")
+    def _on_export_finished(self, result):
+        t = self._i18n.t
+        self._export_btn.setEnabled(True)
+        self._progress_bar.setValue(100)
+        self._status_label.setText(t("export.complete"))
+        self._refresh_exports_list()
+        self._refresh_export_selector()
+        self.export_finished.emit(result)
+        errors = result.get("errors", [])
+        if errors:
+            self._append_log(f"Warnings: {errors}")
 
-        worker = ExportWorker(
-            lora_path=lora_path,
-            model_path=model_path,
-            export_dir=export_dir,
-            export_name=export_name,
-            formats=formats,
-        )
-        worker.signals.progress.connect(on_progress)
-        worker.signals.finished.connect(on_finished)
-        worker.signals.error.connect(on_error)
-        worker.signals.log.connect(self._append_log)
-        self._export_worker = worker
-        worker.start()
+    def _on_export_error(self, code, detail):
+        t = self._i18n.t
+        self._export_btn.setEnabled(True)
+        self._status_label.setText(f"{t('common.error')}: {detail}")
+        self._append_log(f"ERROR [{code}]: {detail}")
 
     def _append_log(self, msg):
-        t = time.strftime("%H:%M:%S")
-        self._log_output.append(f"[{t}] {msg}")
+        ts = time.strftime("%H:%M:%S")
+        self._log_output.append(f"[{ts}] {msg}")
 
     def _on_browse_dir(self):
         d = QFileDialog.getExistingDirectory(self, "Select Export Directory")
@@ -359,7 +365,7 @@ class ExportPage(QWidget):
             self._dir_edit.setText(d)
             self._config.set("export_dir", d)
 
-    # ── Exported models ─────────────────────────────────────
+    # ── Exported models table ────────────────────────────────
 
     def _refresh_exports_list(self):
         self._export_table.setRowCount(0)
@@ -368,8 +374,7 @@ class ExportPage(QWidget):
             r = self._export_table.rowCount()
             self._export_table.insertRow(r)
             self._export_table.setItem(r, 0, QTableWidgetItem(exp["name"]))
-            fmt = detect_format(exp["path"])
-            self._export_table.setItem(r, 1, QTableWidgetItem(fmt))
+            self._export_table.setItem(r, 1, QTableWidgetItem(detect_format(exp["path"])))
             size_mb = exp["size"] / (1024 * 1024) if exp["size"] > 0 else 0
             self._export_table.setItem(r, 2, QTableWidgetItem(f"{size_mb:.0f} MB"))
             ts = time.strftime("%Y-%m-%d %H:%M", time.localtime(exp["export_time"])) if exp["export_time"] else ""
@@ -379,35 +384,37 @@ class ExportPage(QWidget):
         self._export_selector.clear()
         exports = self._exporter.list_exports()
         for exp in exports:
-            gguf_files = exp.get("gguf_files", [])
+            gguf_files = exp.get("gguf_files", []) or []
             if gguf_files:
                 for gf in gguf_files:
-                    label = f"{exp['name']} / {os.path.basename(gf)}"
-                    self._export_selector.addItem(label, userData={"dir": exp["path"], "gguf": gf})
+                    self._export_selector.addItem(
+                        f"{exp['name']} / {os.path.basename(gf)}",
+                        userData={"dir": exp["path"], "gguf": gf}
+                    )
             else:
                 self._export_selector.addItem(exp["name"], userData={"dir": exp["path"], "gguf": ""})
 
     def _on_export_selected(self, _index):
         data = self._export_selector.currentData() or {}
-        full_dir = data.get("dir", "")
         gguf = data.get("gguf", "")
         if gguf:
             self._gguf_path_label.setText(gguf)
             self._ollama_name_edit.setText(os.path.splitext(os.path.basename(gguf))[0])
-        elif full_dir:
-            found = find_gguf(full_dir)
+        else:
+            full_dir = data.get("dir", "")
+            found = find_gguf(full_dir) if full_dir else ""
             self._gguf_path_label.setText(found or full_dir)
 
     def _delete_export(self):
+        t = self._i18n.t
         row = self._export_table.currentRow()
         if row < 0:
             return
         name = self._export_table.item(row, 0).text()
-        path = os.path.join(self._config.get("export_dir", ""), name)
-        reply = QMessageBox.question(self, "Confirm", f"Delete export '{name}'?")
+        reply = QMessageBox.question(self, t("common.warning"), t("export.delete_confirm"))
         if reply == QMessageBox.Yes:
-            import shutil as _shutil
-            _shutil.rmtree(path, ignore_errors=True)
+            import shutil
+            shutil.rmtree(os.path.join(self._config.get("export_dir", ""), name), ignore_errors=True)
             self._refresh_exports_list()
             self._refresh_export_selector()
 
@@ -420,9 +427,10 @@ class ExportPage(QWidget):
         if os.path.isdir(path):
             os.startfile(path)
 
-    # ── Ollama ──────────────────────────────────────────────
+    # ── Ollama ────────────────────────────────────────────────
 
     def _detect_ollama(self):
+        t = self._i18n.t
         if self._deployer.is_installed():
             ver = self._deployer.get_version()
             self._ollama_status_label.setText(f"[OK] Ollama {ver}")
@@ -430,13 +438,14 @@ class ExportPage(QWidget):
             self._deploy_btn.setEnabled(True)
             self._run_btn.setEnabled(True)
         else:
-            self._ollama_status_label.setText("Ollama not installed")
+            self._ollama_status_label.setText(t("deploy.not_installed"))
             self._ollama_status_label.setStyleSheet("color: #ef4444;")
             self._deploy_btn.setEnabled(False)
             self._run_btn.setEnabled(False)
         self._refresh_ollama_list()
 
     def _on_deploy(self):
+        t = self._i18n.t
         data = self._export_selector.currentData() or {}
         gguf_path = data.get("gguf", "")
         full_dir = data.get("dir", "")
@@ -446,16 +455,16 @@ class ExportPage(QWidget):
         elif full_dir:
             model_path = find_gguf(full_dir) or find_safetensors_dir(full_dir)
         else:
-            QMessageBox.warning(self, "Warning", "Please select an export first")
+            QMessageBox.warning(self, t("common.warning"), t("export.select_export"))
             return
 
         if not os.path.exists(model_path):
-            QMessageBox.warning(self, "Warning", f"Model file not found: {model_path}")
+            QMessageBox.warning(self, t("common.warning"), t("export.model_missing"))
             return
 
         ollama_name = self._ollama_name_edit.text().strip()
         if not ollama_name:
-            QMessageBox.warning(self, "Warning", "Please enter a model name")
+            QMessageBox.warning(self, t("common.warning"), t("export.enter_name"))
             return
 
         is_dir = os.path.isdir(model_path)
@@ -473,34 +482,30 @@ class ExportPage(QWidget):
         self._deploy_btn.setEnabled(True)
 
         if success:
-            QMessageBox.information(self, "Success", f"Model '{ollama_name}' created!")
+            QMessageBox.information(self, t("common.success"),
+                                    t("export.deploy_success").format(ollama_name))
             self._refresh_ollama_list()
         else:
-            QMessageBox.critical(self, "Error", f"Deploy failed: {output}")
+            QMessageBox.critical(self, t("common.error"), output)
 
     def _on_run_ollama(self):
+        t = self._i18n.t
         ollama_name = self._ollama_name_edit.text().strip()
-
         if not ollama_name:
-            # Try selected ollama table row
             row = self._ollama_table.currentRow()
             if row >= 0:
                 ollama_name = self._ollama_table.item(row, 0).text()
-
         if not ollama_name:
-            QMessageBox.warning(self, "Warning", "Please enter or select a model name")
             return
-
         success, msg = self._deployer.run_model(ollama_name)
         if not success:
-            QMessageBox.critical(self, "Error", msg)
+            QMessageBox.critical(self, t("common.error"), msg)
 
     def _refresh_ollama_list(self):
         self._ollama_table.setRowCount(0)
         if not self._deployer.is_installed():
             return
-        models = self._deployer.list_models()
-        for m in models:
+        for m in self._deployer.list_models():
             r = self._ollama_table.rowCount()
             self._ollama_table.insertRow(r)
             self._ollama_table.setItem(r, 0, QTableWidgetItem(m.get("name", "")))
@@ -508,35 +513,45 @@ class ExportPage(QWidget):
             self._ollama_table.setItem(r, 2, QTableWidgetItem(m.get("modified", "")))
 
     def _delete_ollama_model(self):
+        t = self._i18n.t
         row = self._ollama_table.currentRow()
         if row < 0:
             return
         name = self._ollama_table.item(row, 0).text()
-        reply = QMessageBox.question(self, "Confirm", f"Delete Ollama model '{name}'?")
+        reply = QMessageBox.question(self, t("common.warning"), f"{t('common.delete')} '{name}'?")
         if reply == QMessageBox.Yes:
             success, msg = self._deployer.delete_model(name)
             if not success:
-                QMessageBox.critical(self, "Error", msg)
+                QMessageBox.critical(self, t("common.error"), msg)
             self._refresh_ollama_list()
 
-    # ── i18n refresh ────────────────────────────────────────
+    # ── i18n ─────────────────────────────────────────────────
 
     def _refresh_texts(self):
         t = self._i18n.t
         self._title_label.setText(t("nav.export"))
         self._cfg_group.setTitle(t("export.lora_adapter"))
+        self._model_label.setText(t("export.base_model") + ":")
+        self._lora_label.setText(t("train.lora_path") + ":")
+        self._dir_label.setText(t("export.dir") + ":")
+        self._name_label.setText(t("export.name") + ":")
+        self._dir_browse_btn.setText(t("common.browse"))
         self._fmt_group.setTitle(t("export.format"))
         self._fmt_16bit.setText(t("format.16bit"))
         self._fmt_q4.setText(t("format.gguf_q4"))
         self._fmt_q8.setText(t("format.gguf_q8"))
         self._fmt_f16.setText(t("format.gguf_f16"))
         self._fmt_lora.setText(t("format.lora_only"))
-        self._export_btn.setText(t("common.save"))
-        self._exports_list_group.setTitle(t("export.name"))
-        self._export_open_btn.setText(t("common.browse"))
+        self._export_btn.setText(t("export.start"))
+        self._exports_list_group.setTitle(t("export.exports_title"))
         self._export_delete_btn.setText(t("common.delete"))
+        self._export_open_btn.setText(t("export.open_dir"))
+        self._export_pick_label.setText(t("export.name") + ":")
+        self._deploy_path_label.setText(t("export.dir") + ":")
+        self._deploy_name_label.setText(t("deploy.model_name") + ":")
+        self._deploy_system_label.setText(t("deploy.system_prompt") + ":")
         self._deploy_group.setTitle(t("deploy.create"))
-        self._ollama_group.setTitle("Ollama Models")
+        self._ollama_group.setTitle(t("export.ollama_title"))
         self._deploy_btn.setText(t("deploy.create"))
         self._run_btn.setText(t("deploy.run"))
         self._ollama_detect_btn.setText(t("deploy.detect"))
@@ -545,7 +560,10 @@ class ExportPage(QWidget):
         self._export_table.setHorizontalHeaderLabels([
             t("common.name"), t("common.format"), t("common.size"), t("common.time")
         ])
-        self._ollama_table.setHorizontalHeaderLabels(["Name", "Size", "Modified"])
+        self._ollama_table.setHorizontalHeaderLabels([
+            t("common.name"), t("common.size"), t("common.time")
+        ])
+        self._system_prompt_edit.setPlaceholderText("You are a helpful assistant.")
         self._detect_ollama()
 
     def showEvent(self, event):
