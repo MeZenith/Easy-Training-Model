@@ -122,6 +122,7 @@ class ExportPage(QWidget):
         self._fmt_f16.setChecked(True)
         self._fmt_q8 = QCheckBox()
         self._fmt_q4 = QCheckBox()
+        self._fmt_16bit = QCheckBox()
         self._fmt_lora = QCheckBox()
         for cb in [self._fmt_fp32, self._fmt_f16, self._fmt_q8, self._fmt_q4, self._fmt_16bit, self._fmt_lora]:
             fl.addWidget(cb)
