@@ -1,7 +1,8 @@
-"""导出逻辑"""
+"""导出逻辑 — 16bit / GGUF / LoRA-only"""
 
 import logging
 import os
+import re
 import shutil
 
 import torch
@@ -9,6 +10,38 @@ import torch
 from utils.worker import BaseWorker
 
 logger = logging.getLogger("EasyTinking")
+
+
+def _hf_to_gguf_name(name: str) -> str:
+    """将 HuggingFace 张量名映射为 GGUF 标准名称"""
+    if name == "model.embed_tokens.weight":
+        return "token_embd.weight"
+    if name == "model.norm.weight":
+        return "output_norm.weight"
+    if name == "lm_head.weight":
+        return "output.weight"
+
+    m = re.match(r"model\.layers\.(\d+)\.(.+)", name)
+    if m:
+        layer = m.group(1)
+        rest = m.group(2)
+        mapping = {
+            "input_layernorm.weight": f"blk.{layer}.attn_norm.weight",
+            "post_attention_layernorm.weight": f"blk.{layer}.ffn_norm.weight",
+            "self_attn.q_proj.weight": f"blk.{layer}.attn_q.weight",
+            "self_attn.q_proj.bias": f"blk.{layer}.attn_q.bias",
+            "self_attn.k_proj.weight": f"blk.{layer}.attn_k.weight",
+            "self_attn.k_proj.bias": f"blk.{layer}.attn_k.bias",
+            "self_attn.v_proj.weight": f"blk.{layer}.attn_v.weight",
+            "self_attn.v_proj.bias": f"blk.{layer}.attn_v.bias",
+            "self_attn.o_proj.weight": f"blk.{layer}.attn_output.weight",
+            "mlp.gate_proj.weight": f"blk.{layer}.ffn_gate.weight",
+            "mlp.up_proj.weight": f"blk.{layer}.ffn_up.weight",
+            "mlp.down_proj.weight": f"blk.{layer}.ffn_down.weight",
+        }
+        return mapping.get(rest, name)
+
+    return name
 
 
 class ExportWorker(BaseWorker):
@@ -62,10 +95,9 @@ class ExportWorker(BaseWorker):
         self.signals.log.emit("Loading base model...")
         model = AutoModelForCausalLM.from_pretrained(
             self._model_path, trust_remote_code=True, device_map="cpu",
-            torch_dtype="auto",
+            torch_dtype=torch.float16,
         )
 
-        # 合并 LoRA 适配器
         if self._lora_path and os.path.isdir(self._lora_path):
             self.signals.log.emit("Merging LoRA adapter...")
             try:
@@ -80,7 +112,6 @@ class ExportWorker(BaseWorker):
         model.save_pretrained(model_path)
         tokenizer.save_pretrained(model_path)
 
-        # 复制 LoRA 元数据到导出目录
         meta_path = os.path.join(self._lora_path or "", "metadata.json")
         if os.path.isfile(meta_path):
             try:
@@ -91,7 +122,7 @@ class ExportWorker(BaseWorker):
         return self._list_files(model_path)
 
     def _export_gguf(self, out_dir: str, quantization: str) -> list:
-        """导出 GGUF 格式 — 使用 gguf 库完整写入 tokenizer 元数据"""
+        """导出 GGUF 格式 — 含完整 tokenizer 元数据 + 量化"""
         from peft import PeftModel
         from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
 
@@ -111,27 +142,24 @@ class ExportWorker(BaseWorker):
             except Exception as e:
                 self.signals.log.emit(f"LoRA merge failed: {e}")
 
-        state_dict = model.state_dict()
-
-        # Write to temp F16 file first
+        # 写入 F16 GGUF
         f16_path = os.path.join(out_dir, "model-F16.gguf")
-        self._write_gguf_file(f16_path, config, tokenizer, state_dict)
+        self._write_gguf(f16_path, config, tokenizer, model)
 
         if quantization == "F16":
-            final_path = os.path.join(out_dir, "model-F16.gguf")
-            os.replace(f16_path, final_path)
+            final_path = f16_path
         else:
             final_path = os.path.join(out_dir, f"model-{quantization}.gguf")
-            self._quantize_gguf_file(f16_path, final_path, quantization)
+            self.signals.log.emit(f"Quantizing to {quantization}...")
+            self._quantize_gguf(f16_path, final_path, quantization)
             os.remove(f16_path)
 
         return [{"name": os.path.basename(final_path), "path": final_path,
                  "size": os.path.getsize(final_path) if os.path.isfile(final_path) else 0}]
 
     @staticmethod
-    def _write_gguf_file(path: str, config, tokenizer, state_dict: dict):
-        """将 HF 模型写入完整 GGUF 文件（含 tokenizer 元数据）"""
-
+    def _write_gguf(path: str, config, tokenizer, model) -> None:
+        """写入完整 GGUF 文件 — 逐张量流式写入"""
         from gguf import GGUFWriter, TokenType
 
         arch = getattr(config, "model_type", "qwen2")
@@ -149,8 +177,15 @@ class ExportWorker(BaseWorker):
         writer.add_layer_norm_rms_eps(getattr(config, "rms_norm_eps", 1e-6))
         writer.add_file_type(1)
 
+        # 从 tokenizer 和嵌入表计算 vocab_size
         vocab = tokenizer.get_vocab()
         vocab_size = max(vocab.values()) + 1
+        for name, param in model.named_parameters():
+            if name == "model.embed_tokens.weight":
+                if param.shape[0] > vocab_size:
+                    vocab_size = param.shape[0]
+                break
+
         writer.add_vocab_size(vocab_size)
 
         tokens = [""] * vocab_size
@@ -158,7 +193,6 @@ class ExportWorker(BaseWorker):
             if 0 <= idx < vocab_size:
                 tokens[idx] = tok
         writer.add_token_list(tokens)
-
         writer.add_token_scores([0.0] * vocab_size)
 
         specials = set()
@@ -168,16 +202,26 @@ class ExportWorker(BaseWorker):
                 specials.add(tok)
         token_types = []
         for tok in tokens:
-            if tok in specials or tok.startswith("<|"):
-                token_types.append(TokenType.CONTROL)
-            else:
-                token_types.append(TokenType.NORMAL)
+            token_types.append(
+                TokenType.CONTROL if tok in specials or tok.startswith("<|")
+                else TokenType.NORMAL
+            )
         writer.add_token_types(token_types)
 
+        # BPE merges — 兼容 _mergeable_ranks(dict) 和 _merges(list of tuple)
         mergeable = getattr(tokenizer, "_mergeable_ranks", None)
         if mergeable:
             merges = [" ".join(p) for p, _ in sorted(mergeable.items(), key=lambda x: x[1])]
             writer.add_token_merges(merges)
+        elif hasattr(tokenizer, "_merges"):
+            merges = []
+            for m in tokenizer._merges:
+                if isinstance(m, (tuple, list)):
+                    merges.append(" ".join(str(x) for x in m))
+                elif isinstance(m, str):
+                    merges.append(m)
+            if merges:
+                writer.add_token_merges(merges)
 
         writer.add_tokenizer_model("gpt2")
 
@@ -194,8 +238,13 @@ class ExportWorker(BaseWorker):
         writer.add_add_bos_token(False)
         writer.add_add_eos_token(False)
 
-        for name, tensor in state_dict.items():
-            writer.add_tensor(name, tensor.detach().cpu().float().numpy())
+        # 逐张量写入（映射 HF 名 → GGUF 名，GGUF 自动反转维度顺序）
+        with torch.no_grad():
+            for name, param in model.named_parameters():
+                gguf_name = _hf_to_gguf_name(name)
+                tensor = param.detach().cpu().float().numpy()
+                writer.add_tensor(gguf_name, tensor)
+                del tensor
 
         writer.write_header_to_file()
         writer.write_kv_data_to_file()
@@ -203,12 +252,13 @@ class ExportWorker(BaseWorker):
         writer.close()
 
     @staticmethod
-    def _quantize_gguf_file(input_path: str, output_path: str, quant_type: str):
-        """GGUF 量化"""
+    def _quantize_gguf(input_path: str, output_path: str, quant_type: str) -> None:
+        """GGUF 量化 — F16 → Q8_0 / Q4_K_M"""
         from gguf import GGUFReader, GGUFWriter
         from gguf.quants import quantize
 
         reader = GGUFReader(input_path)
+
         arch = "qwen2"
         for field in reader.fields.values():
             if field.name == "general.architecture":
@@ -216,10 +266,20 @@ class ExportWorker(BaseWorker):
                 break
 
         writer = GGUFWriter(output_path, arch)
+
+        # 复制元数据 — 跳过数组字段避免 gguf 0.19 类型广播错误
+        skip_array_keys = {
+            "tokenizer.ggml.tokens", "tokenizer.ggml.scores",
+            "tokenizer.ggml.token_type", "tokenizer.ggml.merges",
+        }
         for field in reader.fields.values():
-            for i, val in enumerate(field.parts):
-                vtype = field.types[i] if i < len(field.types) else field.types[0]
-                writer.add_key_value(field.name, val, vtype)
+            if field.name in skip_array_keys:
+                continue
+            if len(field.parts) == 1:
+                try:
+                    writer.add_key_value(field.name, field.parts[0], field.types[0])
+                except Exception:
+                    pass
 
         qtype = getattr(__import__("gguf.quants", fromlist=[quant_type]), quant_type, None)
         for tensor in reader.tensors:
@@ -279,16 +339,13 @@ class Exporter:
             path = os.path.join(self._export_dir, entry)
             if os.path.isdir(path):
                 total_size = 0
-                file_list = []
                 for root, dirs, files in os.walk(path):
                     for f in files:
                         fpath = os.path.join(root, f)
                         try:
-                            sz = os.path.getsize(fpath)
-                            total_size += sz
-                            file_list.append({"name": f, "size": sz, "path": fpath})
-                        except OSError as e:
-                            logger.warning(f"Failed to get file size for {fpath}: {e}")
+                            total_size += os.path.getsize(fpath)
+                        except OSError:
+                            pass
                 mtime = 0
                 for root, dirs, files in os.walk(path):
                     for f in files:
@@ -296,13 +353,18 @@ class Exporter:
                             t = os.path.getmtime(os.path.join(root, f))
                             if t > mtime:
                                 mtime = t
-                        except OSError as e:
-                            logger.warning(f"Failed to get mtime for {fpath}: {e}")
+                        except OSError:
+                            pass
+                gguf_files = []
+                for root, dirs, files in os.walk(path):
+                    for f in files:
+                        if f.endswith(".gguf"):
+                            gguf_files.append(os.path.join(root, f))
                 exports.append({
                     "name": entry,
                     "path": path,
                     "size": total_size,
-                    "file_count": len(file_list),
+                    "gguf_files": gguf_files,
                     "export_time": mtime,
                 })
         return exports

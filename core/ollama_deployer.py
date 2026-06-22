@@ -141,6 +141,27 @@ class OllamaDeployer:
         except Exception as e:
             return False, str(e)
 
+    def delete_model(self, model_name: str) -> tuple:
+        """删除 Ollama 模型
+
+        Returns:
+            (success: bool, message: str)
+        """
+        if not self._ollama_path:
+            return False, "Ollama not installed"
+        try:
+            result = subprocess.run(
+                [self._ollama_path, "rm", model_name],
+                capture_output=True, text=True, encoding="utf-8", timeout=30,
+                creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0
+            )
+            if result.returncode == 0:
+                return True, result.stdout.strip()
+            else:
+                return False, result.stderr.strip() or result.stdout.strip()
+        except Exception as e:
+            return False, str(e)
+
     def list_models(self) -> list:
         """列出已安装的 Ollama 模型"""
         if not self._ollama_path:
@@ -157,10 +178,13 @@ class OllamaDeployer:
                 for line in lines[1:]:
                     parts = line.split()
                     if len(parts) >= 2:
+                        size = " ".join(parts[2:4]) if len(parts) >= 4 else parts[2] if len(parts) > 2 else ""
+                        modified = " ".join(parts[4:]) if len(parts) > 4 else ""
                         models.append({
                             "name": parts[0],
-                            "id": parts[1] if len(parts) > 1 else "",
-                            "size": parts[2] if len(parts) > 2 else "",
+                            "id": parts[1],
+                            "size": size,
+                            "modified": modified,
                         })
                 return models
         except Exception:
