@@ -16,11 +16,14 @@ import os
 import re
 import sys
 
-if hasattr(sys.stdout, "reconfigure"):
-    sys.stdout.reconfigure(encoding="utf-8")
-elif hasattr(sys.stdout, "buffer"):
-    import io
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
+try:
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+    elif hasattr(sys.stdout, "buffer"):
+        import io
+        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
+except Exception:
+    pass
 
 logging.basicConfig(level=logging.WARNING, stream=sys.stderr)
 logger = logging.getLogger("export_worker")
@@ -155,7 +158,7 @@ def _write_gguf(path: str, config, tokenizer, model) -> None:
     with torch.no_grad():
         for i, (name, param) in enumerate(model.named_parameters()):
             gguf_name = _hf_to_gguf_name(name)
-            tensor = param.detach().cpu().float().numpy()
+            tensor = param.detach().cpu().numpy()
             writer.add_tensor(gguf_name, tensor)
             del tensor
             if (i + 1) % 100 == 0:
@@ -165,19 +168,6 @@ def _write_gguf(path: str, config, tokenizer, model) -> None:
     writer.write_kv_data_to_file()
     writer.write_tensors_to_file()
     writer.close()
-
-
-def _reader_get_arch(reader) -> str:
-    """从 reader 提取架构名"""
-    for field in reader.fields.values():
-        if field.name == "general.architecture":
-            val = field.parts[-1]
-            if hasattr(val, "tobytes"):
-                return bytes(val).decode("utf-8", errors="replace")
-            if isinstance(val, bytes):
-                return val.decode("utf-8", errors="replace")
-            return str(val)
-    return "qwen2"
 
 
 def _quantize_gguf(input_path: str, output_path: str, quant_type: str) -> None:
@@ -264,9 +254,11 @@ def main():
 
         progress(2, "Loading model weights...")
         log("This may take a minute...")
+        use_fp32 = any(f in formats for f in ("gguf_FP32", "16bit"))
+        dtype = torch.float32 if use_fp32 else torch.float16
         model = AutoModelForCausalLM.from_pretrained(
             model_path, trust_remote_code=True,
-            device_map="cpu", torch_dtype=torch.float16,
+            device_map="cpu", torch_dtype=dtype,
         )
         log("Model loaded")
 

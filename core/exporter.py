@@ -127,9 +127,11 @@ class ExportWorker(BaseWorker):
         from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
 
         self.signals.log.emit("Loading base model for GGUF...")
+        use_fp32 = quantization in ("FP32",)
+        dtype = torch.float32 if use_fp32 else torch.float16
         model = AutoModelForCausalLM.from_pretrained(
             self._model_path, trust_remote_code=True,
-            device_map="cpu", torch_dtype=torch.float16,
+            device_map="cpu", torch_dtype=dtype,
         )
         config = AutoConfig.from_pretrained(self._model_path, trust_remote_code=True)
         tokenizer = AutoTokenizer.from_pretrained(self._model_path, trust_remote_code=True)
@@ -242,7 +244,7 @@ class ExportWorker(BaseWorker):
         with torch.no_grad():
             for name, param in model.named_parameters():
                 gguf_name = _hf_to_gguf_name(name)
-                tensor = param.detach().cpu().float().numpy()
+                tensor = param.detach().cpu().numpy()
                 writer.add_tensor(gguf_name, tensor)
                 del tensor
 

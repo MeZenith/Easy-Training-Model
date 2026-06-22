@@ -117,13 +117,13 @@ class ExportPage(QWidget):
         # ── Formats ──
         g2 = QGroupBox()
         fl = QVBoxLayout(g2)
-        self._fmt_16bit = QCheckBox()
-        self._fmt_q4 = QCheckBox()
-        self._fmt_q4.setChecked(True)
-        self._fmt_q8 = QCheckBox()
+        self._fmt_fp32 = QCheckBox()
         self._fmt_f16 = QCheckBox()
+        self._fmt_f16.setChecked(True)
+        self._fmt_q8 = QCheckBox()
+        self._fmt_q4 = QCheckBox()
         self._fmt_lora = QCheckBox()
-        for cb in [self._fmt_16bit, self._fmt_q4, self._fmt_q8, self._fmt_f16, self._fmt_lora]:
+        for cb in [self._fmt_fp32, self._fmt_f16, self._fmt_q8, self._fmt_q4, self._fmt_16bit, self._fmt_lora]:
             fl.addWidget(cb)
         layout.addWidget(g2)
         self._fmt_group = g2
@@ -297,12 +297,14 @@ class ExportPage(QWidget):
         formats = []
         if self._fmt_16bit.isChecked():
             formats.append("16bit")
-        if self._fmt_q4.isChecked():
-            formats.append("gguf_Q4_K_M")
-        if self._fmt_q8.isChecked():
-            formats.append("gguf_Q8_0")
+        if self._fmt_fp32.isChecked():
+            formats.append("gguf_FP32")
         if self._fmt_f16.isChecked():
             formats.append("gguf_F16")
+        if self._fmt_q8.isChecked():
+            formats.append("gguf_Q8_0")
+        if self._fmt_q4.isChecked():
+            formats.append("gguf_Q4_K_M")
         if self._fmt_lora.isChecked():
             formats.append("lora_only")
 
@@ -538,9 +540,10 @@ class ExportPage(QWidget):
         self._dir_browse_btn.setText(t("common.browse"))
         self._fmt_group.setTitle(t("export.format"))
         self._fmt_16bit.setText(t("format.16bit"))
-        self._fmt_q4.setText(t("format.gguf_q4"))
-        self._fmt_q8.setText(t("format.gguf_q8"))
+        self._fmt_fp32.setText(t("format.gguf_fp32"))
         self._fmt_f16.setText(t("format.gguf_f16"))
+        self._fmt_q8.setText(t("format.gguf_q8"))
+        self._fmt_q4.setText(t("format.gguf_q4"))
         self._fmt_lora.setText(t("format.lora_only"))
         self._export_btn.setText(t("export.start"))
         self._exports_list_group.setTitle(t("export.exports_title"))
