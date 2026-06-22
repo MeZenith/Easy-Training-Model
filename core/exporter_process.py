@@ -48,6 +48,10 @@ class ProcessExporter(QObject):
         self._process.finished.connect(self._on_process_finished)
         self._process.setProcessChannelMode(QProcess.MergedChannels)
 
+        env = self._process.processEnvironment()
+        env.insert("PYTHONUNBUFFERED", "1")
+        self._process.setProcessEnvironment(env)
+
         worker_path = os.path.join(
             os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
             "workers", "export_worker.py"

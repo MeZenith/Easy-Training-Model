@@ -144,7 +144,7 @@ class TestPage(QWidget):
         topp_row.addWidget(self._topp_label)
         params_form.addRow(self._i18n.t("test.top_p") + ":", topp_row)
 
-        self._max_tokens_edit = QLineEdit("256")
+        self._max_tokens_edit = QLineEdit(str(self._config.get("ui_constants.slider_defaults.max_tokens", 1024)))
         self._max_tokens_edit.setMaximumWidth(80)
         params_form.addRow(self._i18n.t("test.max_tokens") + ":", self._max_tokens_edit)
 

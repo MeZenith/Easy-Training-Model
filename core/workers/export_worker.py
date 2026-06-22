@@ -240,21 +240,31 @@ def main():
     os.makedirs(out_dir, exist_ok=True)
 
     try:
-        progress(0, "Loading model...")
-        log(f"Model: {model_path}")
+        progress(0, "Loading model config...")
+        log(f"Model path: {model_path}")
+        config = AutoConfig.from_pretrained(model_path, trust_remote_code=True)
+        log(f"Architecture: {getattr(config, 'model_type', '?')}, "
+            f"Hidden: {config.hidden_size}, Layers: {config.num_hidden_layers}")
+
+        progress(1, "Loading tokenizer...")
+        tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
+        log(f"Tokenizer loaded, vocab size: {tokenizer.vocab_size}")
+
+        progress(2, "Loading model weights...")
+        log("This may take a minute for large models...")
         model = AutoModelForCausalLM.from_pretrained(
             model_path, trust_remote_code=True,
             device_map="cpu", torch_dtype=torch.float16,
         )
-        config = AutoConfig.from_pretrained(model_path, trust_remote_code=True)
-        tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
+        log("Model loaded")
 
         if lora_path and os.path.isdir(lora_path):
-            progress(5, "Merging LoRA...")
-            log(f"LoRA: {lora_path}")
+            progress(5, "Merging LoRA adapter...")
+            log(f"LoRA path: {lora_path}")
             model = PeftModel.from_pretrained(model, lora_path)
+            progress(7, "Fusing LoRA weights...")
             model = model.merge_and_unload()
-            log("LoRA merged")
+            log("LoRA merged successfully")
 
         for i, fmt in enumerate(formats):
             base_pct = 10 + int(80 * i / len(formats)) if formats else 10

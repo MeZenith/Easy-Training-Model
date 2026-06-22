@@ -80,6 +80,7 @@ _DEFAULT_CONFIG = {
             "top_k": 50,
             "repetition_penalty": 110,
             "presence_penalty": 0,
+            "max_tokens": 1024,
         },
     }
 }
