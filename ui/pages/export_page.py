@@ -326,7 +326,7 @@ class ExportPage(QWidget):
             "formats": formats,
         }
 
-        self._exporter_process = ProcessExporter()
+        self._exporter_process = ProcessExporter(self)
         self._exporter_process.progress.connect(self._on_export_progress)
         self._exporter_process.finished.connect(self._on_export_finished)
         self._exporter_process.error.connect(self._on_export_error)

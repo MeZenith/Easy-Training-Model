@@ -267,19 +267,31 @@ class ExportWorker(BaseWorker):
 
         writer = GGUFWriter(output_path, arch)
 
-        # 复制元数据 — 跳过数组字段避免 gguf 0.19 类型广播错误
-        skip_array_keys = {
-            "tokenizer.ggml.tokens", "tokenizer.ggml.scores",
-            "tokenizer.ggml.token_type", "tokenizer.ggml.merges",
-        }
+        from gguf import GGUFValueType
+
         for field in reader.fields.values():
-            if field.name in skip_array_keys:
+            types = list(field.types)
+            if any(t in (GGUFValueType.ARRAY,) for t in types):
                 continue
-            if len(field.parts) == 1:
-                try:
-                    writer.add_key_value(field.name, field.parts[0], field.types[0])
-                except Exception:
-                    pass
+            vtype = types[-1]
+            val = field.parts[-1]
+
+            if vtype == GGUFValueType.STRING:
+                if hasattr(val, "tobytes"):
+                    val = bytes(val).decode("utf-8", errors="replace")
+                elif isinstance(val, bytes):
+                    val = val.decode("utf-8", errors="replace")
+                else:
+                    continue
+            elif hasattr(val, "item") and hasattr(val, "size") and val.size == 1:
+                val = val.item()
+            else:
+                continue
+
+            try:
+                writer.add_key_value(field.name, val, vtype)
+            except Exception:
+                pass
 
         qtype = getattr(__import__("gguf.quants", fromlist=[quant_type]), quant_type, None)
         for tensor in reader.tensors:

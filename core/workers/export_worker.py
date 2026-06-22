@@ -167,44 +167,56 @@ def _write_gguf(path: str, config, tokenizer, model) -> None:
     writer.close()
 
 
+def _reader_get_arch(reader) -> str:
+    """从 reader 提取架构名"""
+    for field in reader.fields.values():
+        if field.name == "general.architecture":
+            val = field.parts[-1]
+            if hasattr(val, "tobytes"):
+                return bytes(val).decode("utf-8", errors="replace")
+            if isinstance(val, bytes):
+                return val.decode("utf-8", errors="replace")
+            return str(val)
+    return "qwen2"
+
+
 def _quantize_gguf(input_path: str, output_path: str, quant_type: str) -> None:
     """量化 GGUF F16 → Q8_0 / Q4_K_M"""
     from gguf import GGUFReader, GGUFWriter
     from gguf.quants import quantize
 
-    reader = GGUFReader(input_path)
+    rdr = GGUFReader(input_path)
+
     arch = "qwen2"
-    for field in reader.fields.values():
-        if field.name == "general.architecture":
-            arch = field.parts[-1].decode() if isinstance(field.parts[-1], bytes) else str(field.parts[-1])
+    for f in rdr.fields.values():
+        if f.name == "general.architecture":
+            v = f.parts[-1]
+            if hasattr(v, "tobytes"):
+                arch = bytes(v).decode("utf-8", errors="replace")
+            elif isinstance(v, bytes):
+                arch = v.decode("utf-8", errors="replace")
+            else:
+                arch = str(v)
             break
 
-    writer = GGUFWriter(output_path, arch)
-    skip_keys = {"tokenizer.ggml.tokens", "tokenizer.ggml.scores",
-                 "tokenizer.ggml.token_type", "tokenizer.ggml.merges"}
-    for field in reader.fields.values():
-        if field.name in skip_keys:
-            continue
-        if len(field.parts) == 1:
+    total = len(rdr.tensors)
+    qtype = getattr(__import__("gguf.quants", fromlist=[quant_type]), quant_type, None)
+    items = []
+
+    for i, tensor in enumerate(rdr.tensors):
+        data = tensor.data
+        if tensor.name.endswith("weight") and len(data.shape) >= 2 and qtype:
             try:
-                writer.add_key_value(field.name, field.parts[0], field.types[0])
+                data = quantize(data, qtype)
             except Exception:
                 pass
-
-    qtype = getattr(__import__("gguf.quants", fromlist=[quant_type]), quant_type, None)
-    total = len(reader.tensors)
-    for i, tensor in enumerate(reader.tensors):
-        if tensor.name.endswith("weight") and len(tensor.data.shape) >= 2 and qtype:
-            try:
-                q_data = quantize(tensor.data, qtype)
-                writer.add_tensor(tensor.name, q_data, raw_shape=tensor.shape)
-            except Exception:
-                writer.add_tensor(tensor.name, tensor.data, raw_shape=tensor.shape)
-        else:
-            writer.add_tensor(tensor.name, tensor.data, raw_shape=tensor.shape)
+        items.append((tensor.name, data, tensor.shape))
         if (i + 1) % 100 == 0:
             progress(10 + int(80 * (i + 1) / total), f"Quantizing {i + 1}/{total}")
 
+    writer = GGUFWriter(output_path, arch)
+    for name, data, shape in items:
+        writer.add_tensor(name, data, raw_shape=shape)
     writer.write_header_to_file()
     writer.write_kv_data_to_file()
     writer.write_tensors_to_file()
@@ -251,7 +263,7 @@ def main():
         log(f"Tokenizer loaded, vocab size: {tokenizer.vocab_size}")
 
         progress(2, "Loading model weights...")
-        log("This may take a minute for large models...")
+        log("This may take a minute...")
         model = AutoModelForCausalLM.from_pretrained(
             model_path, trust_remote_code=True,
             device_map="cpu", torch_dtype=torch.float16,
@@ -279,11 +291,14 @@ def main():
 
                 elif fmt.startswith("gguf_"):
                     quant = fmt.replace("gguf_", "")
-                    progress(base_pct, "Writing GGUF F16...")
-                    log("Writing GGUF F16 head...")
+                    progress(base_pct, "Writing GGUF F16 head...")
+                    log("Writing GGUF F16...")
 
                     f16_path = os.path.join(out_dir, "model-F16.gguf")
-                    _write_gguf(f16_path, config, tokenizer, model)
+                    try:
+                        _write_gguf(f16_path, config, tokenizer, model)
+                    except Exception as e:
+                        raise RuntimeError(f"Write F16 failed: {e}") from e
 
                     if quant == "F16":
                         final_path = f16_path
@@ -291,7 +306,10 @@ def main():
                         progress(base_pct + 40, f"Quantizing to {quant}...")
                         log(f"Quantizing to {quant}...")
                         final_path = os.path.join(out_dir, f"model-{quant}.gguf")
-                        _quantize_gguf(f16_path, final_path, quant)
+                        try:
+                            _quantize_gguf(f16_path, final_path, quant)
+                        except Exception as e:
+                            raise RuntimeError(f"Quantize {quant} failed: {e}") from e
                         os.remove(f16_path)
 
                     sz = os.path.getsize(final_path) if os.path.isfile(final_path) else 0

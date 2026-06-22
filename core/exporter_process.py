@@ -57,6 +57,12 @@ class ProcessExporter(QObject):
             "workers", "export_worker.py"
         )
         self._process.start(sys.executable, [worker_path, "--config", self._config_path])
+
+        if not self._process.waitForStarted(5000):
+            logger.error("Export process failed to start")
+            self.error.emit("ERR_START", "Failed to start export process")
+            return
+
         logger.info(f"Export process started (PID: {self._process.processId()})")
 
     def stop_export(self):
@@ -98,8 +104,10 @@ class ProcessExporter(QObject):
     def _on_stdout(self):
         if not self._process:
             return
-        raw = bytes(self._process.readAllStandardOutput())
-        data = raw.decode("utf-8", errors="replace")
+        raw = self._process.readAllStandardOutput()
+        if not raw:
+            return
+        data = raw.data().decode("utf-8", errors="replace")
         self._pending_output += data
         while "\n" in self._pending_output:
             line, self._pending_output = self._pending_output.split("\n", 1)
