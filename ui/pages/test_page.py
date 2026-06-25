@@ -80,7 +80,6 @@ class TestPage(QWidget):
         #输入行
         input_row = QHBoxLayout()
         self._input_edit = QLineEdit()
-        self._input_edit.setPlaceholderText("Type a message...")
         self._input_edit.returnPressed.connect(self._on_send)
         input_row.addWidget(self._input_edit, 1)
 

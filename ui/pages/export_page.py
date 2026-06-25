@@ -210,7 +210,6 @@ class ExportPage(QWidget):
 
         self._system_prompt_edit = QTextEdit()
         self._system_prompt_edit.setMaximumHeight(80)
-        self._system_prompt_edit.setPlaceholderText("You are a helpful assistant.")
         self._deploy_system_label = QLabel()
         f.addRow(self._deploy_system_label, self._system_prompt_edit)
 
@@ -594,7 +593,6 @@ class ExportPage(QWidget):
             [t("common.name"), t("common.format"), t("common.size"), t("common.time")]
         )
         self._ollama_table.setHorizontalHeaderLabels([t("common.name"), t("common.size"), t("common.time")])
-        self._system_prompt_edit.setPlaceholderText("You are a helpful assistant.")
         self._detect_ollama()
 
     def showEvent(self, event):

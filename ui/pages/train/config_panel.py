@@ -247,6 +247,9 @@ class TrainConfigPanel(QWidget):
         self._model_combo.currentIndexChanged.connect(self._on_model_changed)
         self._dataset_list.itemChanged.connect(lambda: self._update_data_label())
         self._preset_combo.currentIndexChanged.connect(self._on_preset_changed)
+        self._lora_rank_spin.valueChanged.connect(lambda v: self._guess_vram())
+        self._batch_combo.currentTextChanged.connect(lambda t: self._guess_vram())
+        self._max_seq_combo.currentTextChanged.connect(lambda t: self._guess_vram())
 
     def get_train_config(self) -> dict:
         #从UI控件收集训练配置
@@ -394,8 +397,17 @@ class TrainConfigPanel(QWidget):
         self._lr_spin.setValue(p.get("learning_rate", 0.0002))
         if "max_seq_length" in p:
             self._max_seq_combo.setCurrentText(str(p["max_seq_length"]))
-        vram_estimates = {"quick": "~5 GB", "standard": "~6 GB", "fine": "~7 GB", "custom": "-"}
-        self._est_vram_label.setText(vram_estimates.get(preset, "-"))
+        self._guess_vram()
+
+    def _guess_vram(self):
+        #根据当前参数估算大约要多少显存
+        #base模型吃4G多 + rank越大越吃 + batch和seq_len也占不少
+        rank = self._lora_rank_spin.value()
+        batch = int(self._batch_combo.currentText())
+        seq_len = int(self._max_seq_combo.currentText())
+        base = 4.2
+        est = base + rank * 0.04 + batch * seq_len * 0.00015
+        self._est_vram_label.setText(f"约 {est:.1f} GB")
 
     def _on_edit_identity(self):
         #编辑模型身份信息
