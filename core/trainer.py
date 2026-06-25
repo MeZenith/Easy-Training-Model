@@ -6,6 +6,8 @@ import tempfile
 
 from PySide6.QtCore import QObject, QProcess, Signal
 
+from utils.worker import clean_name, read_process_lines
+
 logger = logging.getLogger("EasyTinking")
 
 
@@ -33,7 +35,7 @@ class ProcessTrainer(QObject):
     def start_training(self, config: dict):
         #启动子进程训练
         lora_name = config.get("lora_name", "untitled")
-        output_dir = os.path.join(self._lora_dir, self._sanitize(lora_name))
+        output_dir = os.path.join(self._lora_dir, clean_name(lora_name))
         os.makedirs(output_dir, exist_ok=True)
         config["output_dir"] = output_dir
 
@@ -109,19 +111,17 @@ class ProcessTrainer(QObject):
 
     def _on_stdout(self):
         #读取子进程全部标准输出
-        if not self._proc:
-            return
-        data = bytes(self._proc.readAllStandardOutput()).decode("utf-8", errors="replace")
-        self._buf += data
-        #按行切分处理
-        while "\n" in self._buf:
-            line, self._buf = self._buf.split("\n", 1)
+        self._buf, lines = read_process_lines(self._proc, self._buf)
+        for line in lines:
             self._process_line(line)
 
     def _on_done(self, exit_code: int, exit_status: QProcess.ExitStatus):
         #子进程退出，把缓冲里的残留数据读完
-        self._on_stdout()
-        while self._buf.strip():
+        self._buf, lines = read_process_lines(self._proc, self._buf)
+        for line in lines:
+            self._process_line(line)
+        #最后一行（可能没有换行符）
+        if self._buf.strip():
             self._process_line(self._buf.strip())
             self._buf = ""
 
@@ -157,14 +157,6 @@ class ProcessTrainer(QObject):
                         logger.warning(f"Failed to read LoRA metadata from {meta_path}: {e}")
                 loras.append(info)
         return loras
-
-    @staticmethod
-    def _sanitize(name: str) -> str:
-        #清理名称 只保留字母数字下划线和点横线
-        import re
-        name = name.strip()
-        return re.sub(r'[^\w\-.]', '_', name) or "untitled"
-
 
 def list_loras_for_combo(workspace: str) -> list:
     #获取lora列表 给下拉框用

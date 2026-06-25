@@ -5,6 +5,8 @@ import os
 import time
 from typing import Optional
 
+from utils.worker import clean_name
+
 logger = logging.getLogger("EasyTinking")
 
 #单条数据必须要有的字段
@@ -153,7 +155,7 @@ class DataManager:
 
     def create(self, name: str, description: str = "") -> Dataset:
         #新建数据集
-        name = self._clean_name(name)
+        name = clean_name(name)
         if name in self._datasets:
             raise ValueError(f"Dataset '{name}' already exists")
         path = os.path.join(self._data_dir, name)
@@ -180,7 +182,7 @@ class DataManager:
     def rename(self, old_name: str, new_name: str) -> bool:
         #重命名
         import shutil
-        new_name = self._clean_name(new_name)
+        new_name = clean_name(new_name)
         ds = self._datasets.get(old_name)
         if not ds or new_name in self._datasets:
             return False
@@ -196,14 +198,6 @@ class DataManager:
         except OSError as e:
             logger.error(f"Rename dataset failed: {e}")
             return False
-
-    @staticmethod
-    def _clean_name(name: str) -> str:
-        #清理名称，只留安全字符
-        import re
-        name = name.strip()
-        name = re.sub(r'[^\w\-.]', '_', name)
-        return name or "untitled"
 
     def import_jsonl(self, file_path: str, dataset_name: str,
                      field_map: dict = None) -> dict:

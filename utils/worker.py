@@ -1,4 +1,28 @@
+import re
+import logging
+
 from PySide6.QtCore import QObject, QThread, Signal
+
+logger = logging.getLogger("EasyTinking")
+
+
+#清理文件名，去掉不安全字符
+def clean_name(name: str) -> str:
+    name = name.strip()
+    return re.sub(r'[^\w\-.]', '_', name) or "untitled"
+
+
+#从QProcess读取stdout，处理缓冲拼接，返回 (新buf, 完成的行的列表)
+def read_process_lines(proc, buf: str):
+    if not proc:
+        return buf, []
+    data = bytes(proc.readAllStandardOutput()).decode("utf-8", errors="replace")
+    buf += data
+    lines = []
+    while "\n" in buf:
+        line, buf = buf.split("\n", 1)
+        lines.append(line)
+    return buf, lines
 
 
 class WorkerSignals(QObject):

@@ -6,6 +6,8 @@ import tempfile
 
 from PySide6.QtCore import QObject, QProcess, QProcessEnvironment, Signal
 
+from utils.worker import read_process_lines
+
 logger = logging.getLogger("EasyTinking")
 
 
@@ -111,18 +113,16 @@ class Inferencer(QObject):
 
     def _on_stdout(self):
         #读取子进程全部标准输出
-        if not self._proc:
-            return
-        data = bytes(self._proc.readAllStandardOutput()).decode("utf-8", errors="replace")
-        self._buf += data
-        while "\n" in self._buf:
-            line, self._buf = self._buf.split("\n", 1)
+        self._buf, lines = read_process_lines(self._proc, self._buf)
+        for line in lines:
             self._process_line(line)
 
     def _on_done(self, exit_code, exit_status):
         #子进程退出，清空缓冲
-        self._on_stdout()
-        while self._buf.strip():
+        self._buf, lines = read_process_lines(self._proc, self._buf)
+        for line in lines:
+            self._process_line(line)
+        if self._buf.strip():
             self._process_line(self._buf.strip())
             self._buf = ""
 
