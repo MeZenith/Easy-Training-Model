@@ -1,5 +1,3 @@
-"""数据集管理/验证/导入导出"""
-
 import csv
 import json
 import logging
@@ -9,20 +7,12 @@ from typing import Optional
 
 logger = logging.getLogger("EasyTinking")
 
-# 单条数据的必需字段
+#单条数据必须要有的字段
 REQUIRED_FIELDS = ["instruction", "output"]
 
 
 class Dataset:
-    """单个训练数据集 — 内存中的指令-响应数据集合
-
-    Attributes:
-        name: 数据集名称
-        path: 磁盘 JSONL 文件路径
-        data: list[dict] 每个元素含 instruction/input/output 字段
-        description: 数据集描述文本
-        count: 数据条数 (由 data 长度计算)
-    """
+    #训练数据集，存在内存里的问答对
 
     def __init__(self, name: str, path: str):
         self.name = name
@@ -33,7 +23,7 @@ class Dataset:
         self._load()
 
     def _load(self):
-        """从磁盘加载数据"""
+        #从磁盘加载meta和数据
         meta_path = os.path.join(self.path, "meta.json")
         data_path = os.path.join(self.path, "data.jsonl")
         if os.path.isfile(meta_path):
@@ -57,7 +47,7 @@ class Dataset:
                 logger.error(f"Failed to load dataset: {self.name}")
 
     def save(self):
-        """保存数据集到磁盘"""
+        #保存到磁盘
         os.makedirs(self.path, exist_ok=True)
         meta_path = os.path.join(self.path, "meta.json")
         data_path = os.path.join(self.path, "data.jsonl")
@@ -86,7 +76,7 @@ class Dataset:
         return len(self.data)
 
     def avg_length(self) -> int:
-        """计算平均字符长度"""
+        #算平均字符数
         if not self.data:
             return 0
         total = sum(len(str(d.get("instruction", "")) + str(d.get("input", "")) + str(d.get("output", "")))
@@ -94,13 +84,11 @@ class Dataset:
         return total // len(self.data) if self.data else 0
 
     def validate(self, max_length: int = 0) -> list:
-        """验证数据集，返回问题列表
-
-        每个问题为: {index, field, message}
-        """
+        #验证数据集，返回问题列表 [{index, field, message}]
         issues = []
         seen = set()
         for i, item in enumerate(self.data):
+            #检查必填字段
             for field in REQUIRED_FIELDS:
                 if not item.get(field, "").strip():
                     issues.append({
@@ -109,6 +97,7 @@ class Dataset:
                         "message": f"Missing required field: {field}"
                     })
 
+            #检查长度
             text_len = len(str(item.get("instruction", "")) + str(item.get("input", "")) + str(item.get("output", "")))
             if max_length > 0 and text_len > max_length:
                 issues.append({
@@ -117,6 +106,7 @@ class Dataset:
                     "message": f"Length {text_len} exceeds max {max_length}"
                 })
 
+            #检查重复
             content_key = (item.get("instruction", ""), item.get("input", ""), item.get("output", ""))
             if content_key in seen:
                 issues.append({
@@ -131,19 +121,7 @@ class Dataset:
 
 
 class DataManager:
-    """数据集管理器 — CRUD 操作 + JSONL 持久化
-
-    Args:
-        data_dir: 数据集存储目录
-
-    Public API:
-        list_names() → list[str]
-        get(name) → Dataset | None
-        create(name, description) → Dataset
-        delete(name) → bool
-        import_jsonl(path, name) → Dataset
-        generate_identity_data(name, creator, description) → list[dict]
-    """
+    #数据集管理器
 
     def __init__(self, data_dir: str):
         self._data_dir = data_dir
@@ -152,7 +130,7 @@ class DataManager:
         self._scan()
 
     def _scan(self):
-        """扫描数据目录加载数据集"""
+        #扫描数据目录，加载已有数据集
         self._datasets.clear()
         if not os.path.isdir(self._data_dir):
             return
@@ -167,15 +145,15 @@ class DataManager:
         return self._datasets
 
     def list_names(self) -> list:
-        """返回所有数据集名称"""
+        #返回所有数据集的名字
         return sorted(self._datasets.keys())
 
     def get(self, name: str) -> Optional[Dataset]:
         return self._datasets.get(name)
 
     def create(self, name: str, description: str = "") -> Dataset:
-        """创建新数据集"""
-        name = self._sanitize_name(name)
+        #新建数据集
+        name = self._clean_name(name)
         if name in self._datasets:
             raise ValueError(f"Dataset '{name}' already exists")
         path = os.path.join(self._data_dir, name)
@@ -186,7 +164,7 @@ class DataManager:
         return ds
 
     def delete(self, name: str) -> bool:
-        """删除数据集"""
+        #删除数据集
         import shutil
         ds = self._datasets.get(name)
         if not ds:
@@ -200,9 +178,9 @@ class DataManager:
             return False
 
     def rename(self, old_name: str, new_name: str) -> bool:
-        """重命名数据集"""
+        #重命名
         import shutil
-        new_name = self._sanitize_name(new_name)
+        new_name = self._clean_name(new_name)
         ds = self._datasets.get(old_name)
         if not ds or new_name in self._datasets:
             return False
@@ -220,8 +198,8 @@ class DataManager:
             return False
 
     @staticmethod
-    def _sanitize_name(name: str) -> str:
-        """清理数据集名称，只保留安全字符"""
+    def _clean_name(name: str) -> str:
+        #清理名称，只留安全字符
         import re
         name = name.strip()
         name = re.sub(r'[^\w\-.]', '_', name)
@@ -229,16 +207,7 @@ class DataManager:
 
     def import_jsonl(self, file_path: str, dataset_name: str,
                      field_map: dict = None) -> dict:
-        """导入 JSONL 文件
-
-        Args:
-            file_path: JSONL 文件路径
-            dataset_name: 目标数据集名
-            field_map: 字段映射 {源字段: 目标字段}，默认自动检测
-
-        Returns:
-            {success: int, failed: int, errors: list}
-        """
+        #导入jsonl文件，返回 {success, failed, errors}
         result = {"success": 0, "failed": 0, "errors": []}
         ds = self._datasets.get(dataset_name)
         if not ds:
@@ -257,7 +226,7 @@ class DataManager:
                     try:
                         item = json.loads(line)
                         mapped = self._map_fields(item, field_map)
-                        if self._validate_item(mapped):
+                        if self._check_item(mapped):
                             ds.data.append(mapped)
                             result["success"] += 1
                         else:
@@ -273,7 +242,7 @@ class DataManager:
 
     def import_json(self, file_path: str, dataset_name: str,
                     field_map: dict = None) -> dict:
-        """导入 JSON 文件（数组格式）"""
+        #导入json文件（数组格式）
         result = {"success": 0, "failed": 0, "errors": []}
         ds = self._datasets.get(dataset_name)
         if not ds:
@@ -291,7 +260,7 @@ class DataManager:
                 return result
             for i, item in enumerate(data):
                 mapped = self._map_fields(item, field_map)
-                if self._validate_item(mapped):
+                if self._check_item(mapped):
                     ds.data.append(mapped)
                     result["success"] += 1
                 else:
@@ -304,7 +273,7 @@ class DataManager:
 
     def import_csv(self, file_path: str, dataset_name: str,
                    field_map: dict = None) -> dict:
-        """导入 CSV 文件"""
+        #导入csv文件
         result = {"success": 0, "failed": 0, "errors": []}
         ds = self._datasets.get(dataset_name)
         if not ds:
@@ -320,7 +289,7 @@ class DataManager:
                 for i, row in enumerate(reader):
                     try:
                         mapped = self._map_fields(dict(row), field_map)
-                        if self._validate_item(mapped):
+                        if self._check_item(mapped):
                             ds.data.append(mapped)
                             result["success"] += 1
                         else:
@@ -335,7 +304,7 @@ class DataManager:
         return result
 
     def export_dataset(self, name: str, output_path: str, fmt: str = "jsonl") -> bool:
-        """导出数据集到文件"""
+        #导出数据集到文件
         ds = self._datasets.get(name)
         if not ds:
             return False
@@ -354,16 +323,13 @@ class DataManager:
 
     @staticmethod
     def _map_fields(item: dict, field_map: dict = None) -> dict:
-        """字段映射
-
-        默认自动检测 instruction/input/output，
-        如果提供了 field_map 则使用映射
-        """
+        #字段映射，把各种来源的字段名统一成 instruction/input/output
         if field_map:
             mapped = {}
             for src, dst in field_map.items():
                 if src in item:
                     mapped[dst] = item[src]
+            #补上没有映射到的字段
             for key in ["instruction", "input", "output"]:
                 if key not in mapped:
                     mapped[key] = item.get(key, "")
@@ -374,6 +340,7 @@ class DataManager:
             if key in item:
                 mapped[key] = str(item[key])
             elif key == "instruction":
+                #尝试其他常见的指令字段名
                 for alt in ["prompt", "question", "Q"]:
                     if alt in item:
                         mapped[key] = str(item[alt])
@@ -386,8 +353,8 @@ class DataManager:
         return mapped
 
     @staticmethod
-    def _validate_item(item: dict) -> bool:
-        """验证单条数据"""
+    def _check_item(item: dict) -> bool:
+        #验证单条数据是否合法
         for field in REQUIRED_FIELDS:
             if not item.get(field, "").strip():
                 return False
@@ -395,8 +362,8 @@ class DataManager:
 
     @staticmethod
     def generate_identity_data(name: str, creator: str, description: str,
-                               specialties: str = "") -> list:
-        """生成模型身份认知数据"""
+                                specialties: str = "") -> list:
+        #生成模型的身份认知训练数据
         data = []
         qa_pairs = [
             ("你是谁？", f"我是{name}，由{creator}创建。{description}"),

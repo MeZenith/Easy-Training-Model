@@ -1,8 +1,4 @@
-"""HF 模型 → GGUF — 完整转换，包含 BPE tokenizer 元数据
-
-用法: python tools/convert_hf_to_gguf.py <model_dir> <output.gguf>
-"""
-
+#HF模型转GGUF工具
 import os
 import sys
 
@@ -28,10 +24,10 @@ def convert(model_dir: str, output_path: str):
     print("Loading tokenizer...")
     tokenizer = AutoTokenizer.from_pretrained(model_dir, trust_remote_code=True)
 
-    # ---- GGUF Writer ----
+    #创建GGUF写入器
     writer = GGUFWriter(output_path, arch)
 
-    # ---- Model metadata ----
+    #模型元数据
     writer.add_name(os.path.basename(model_dir))
     writer.add_context_length(getattr(config, "max_position_embeddings", 2048))
     writer.add_embedding_length(config.hidden_size)
@@ -42,25 +38,23 @@ def convert(model_dir: str, output_path: str):
     writer.add_head_count_kv(num_kv)
     writer.add_rope_freq_base(getattr(config, "rope_theta", 1000000.0))
     writer.add_layer_norm_rms_eps(getattr(config, "rms_norm_eps", 1e-6))
-    writer.add_file_type(1)  # FP16
+    writer.add_file_type(1)
 
-    # ---- Tokenizer ----
+    #词表
     vocab = tokenizer.get_vocab()
     vocab_size = max(vocab.values()) + 1
     writer.add_vocab_size(vocab_size)
 
-    # Build token list sorted by token id
     tokens = [""] * vocab_size
     for tok, idx in vocab.items():
         if 0 <= idx < vocab_size:
             tokens[idx] = tok
     writer.add_token_list(tokens)
 
-    # Token scores (all 0.0 for BPE)
     scores = [0.0] * vocab_size
     writer.add_token_scores(scores)
 
-    # Token types: mark special tokens as CONTROL
+    #特殊token
     special_tokens = set()
     special_keys = {
         "pad_token", "bos_token", "eos_token", "unk_token",
@@ -81,7 +75,7 @@ def convert(model_dir: str, output_path: str):
             token_types.append(TokenType.NORMAL)
     writer.add_token_types(token_types)
 
-    # BPE merges
+    #BPE merges
     merges = []
     mergeable_ranks = getattr(tokenizer, "_mergeable_ranks", None)
     if mergeable_ranks:
@@ -97,7 +91,7 @@ def convert(model_dir: str, output_path: str):
 
     writer.add_tokenizer_model("gpt2")
 
-    # Special token IDs
+    #特殊token ID
     if tokenizer.bos_token_id is not None:
         writer.add_bos_token_id(tokenizer.bos_token_id)
     if tokenizer.eos_token_id is not None:
@@ -110,7 +104,7 @@ def convert(model_dir: str, output_path: str):
     writer.add_add_bos_token(False)
     writer.add_add_eos_token(False)
 
-    # ---- Tensors ----
+    #写入张量
     print("Writing tensors...")
     total = len(state_dict)
     for i, (name, tensor) in enumerate(state_dict.items()):
@@ -119,7 +113,6 @@ def convert(model_dir: str, output_path: str):
         if i % 100 == 0:
             print(f"  {i}/{total} {name}")
 
-    # ---- Finalize ----
     print("Writing GGUF file...")
     writer.write_header_to_file()
     writer.write_kv_data_to_file()

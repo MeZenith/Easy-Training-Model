@@ -1,11 +1,9 @@
-"""统一错误分类与格式化模块 — 纯逻辑，不依赖 UI"""
-
 import logging
 from functools import wraps
 
 logger = logging.getLogger("EasyTinking")
 
-# 错误码到 i18n key 的映射
+#错误码到i18n key的映射
 _ERROR_MAP = {
     "ERR_OOM": "error.oom",
     "ERR_MODEL_NOT_FOUND": "error.no_model",
@@ -21,7 +19,7 @@ _ERROR_MAP = {
     "ERR_UNKNOWN": "error.unknown",
 }
 
-# 异常类型到错误码的映射
+#异常类型到错误码的映射
 _EXCEPTION_MAP = {
     "RuntimeError": [
         ("CUDA out of memory", "ERR_OOM"),
@@ -48,10 +46,7 @@ _EXCEPTION_MAP = {
 
 
 def classify_error(exc: Exception) -> tuple:
-    """将异常分类为 (error_code, i18n_key)
-
-    返回: (error_code, i18n_key, detail_str)
-    """
+    #把异常分成 (错误码, i18n_key, 详情)
     exc_type = type(exc).__name__
     exc_msg = str(exc)
 
@@ -66,12 +61,7 @@ def classify_error(exc: Exception) -> tuple:
 
 
 def friendly_error_message(exc: Exception, i18n_func=None) -> str:
-    """生成友好错误提示
-
-    Args:
-        exc: 异常对象
-        i18n_func: i18n.t 函数，如果提供则使用国际化文本
-    """
+    #生成友好报错提示
     code, i18n_key, detail = classify_error(exc)
 
     if i18n_func:
@@ -84,16 +74,7 @@ def friendly_error_message(exc: Exception, i18n_func=None) -> str:
 
 
 def safe_call(func, i18n_func=None, error_title="Error"):
-    """安全调用装饰器 — 异常时记录日志并返回 None，由 UI 层决定如何展示
-
-    Args:
-        func: 要包装的函数
-        i18n_func: 可选 i18n.t 函数，用于生成多语言错误消息
-        error_title: 错误标题
-
-    Returns:
-        装饰后的函数，异常时返回 None
-    """
+    #安全调用装饰器，异常时返回None
     @wraps(func)
     def wrapper(*args, **kwargs):
         try:

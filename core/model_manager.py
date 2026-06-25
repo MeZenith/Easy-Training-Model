@@ -1,5 +1,3 @@
-"""模型下载/管理/校验"""
-
 import json
 import logging
 import os
@@ -8,7 +6,7 @@ from typing import Optional
 
 logger = logging.getLogger("EasyTinking")
 
-# 内置模型列表
+#内置模型列表
 BUILTIN_MODELS = [
     {
         "id": "unsloth/Qwen2.5-Coder-1.5B-Instruct",
@@ -60,23 +58,12 @@ BUILTIN_MODELS = [
     },
 ]
 
-# 模型必需文件
+#模型必需文件
 REQUIRED_FILES = ["config.json", "tokenizer.json", "tokenizer_config.json"]
 
 
 class ModelManager:
-    """模型管理器 — 下载、校验、列表已下载的 HuggingFace 模型
-
-    Args:
-        download_dir: 模型下载目录
-        hf_mirror: HuggingFace 镜像 URL（可选）
-
-    Public API:
-        list_downloaded_models() → list[dict]
-        validate_model(path) → (bool, list)
-        get_model_detail(path) → dict
-        delete_model(path) → bool
-    """
+    #模型管理器 — 下载/校验/列出模型
 
     def __init__(self, download_dir: str, hf_mirror: str = ""):
         self._download_dir = download_dir
@@ -101,14 +88,11 @@ class ModelManager:
         self._hf_mirror = value
 
     def list_builtin_models(self) -> list:
-        """返回内置模型列表"""
+        #返回内置模型列表
         return BUILTIN_MODELS.copy()
 
     def list_downloaded_models(self) -> list:
-        """扫描下载目录，返回已下载模型列表
-
-        每个模型为 dict: {name, path, params, size_bytes, download_time, status}
-        """
+        #扫描下载目录，列出已下载的模型
         models = []
         if not os.path.isdir(self._download_dir):
             return models
@@ -126,6 +110,7 @@ class ModelManager:
                 "status": "unknown",
             }
 
+            #读config.json估算参数量
             if os.path.isfile(config_path):
                 try:
                     with open(config_path, "r", encoding="utf-8") as f:
@@ -134,10 +119,12 @@ class ModelManager:
                 except (json.JSONDecodeError, OSError):
                     pass
 
+            #获取下载时间（用目录最新文件时间）
             mtime = self._get_dir_mtime(model_path)
             if mtime:
                 info["download_time"] = time.strftime("%Y-%m-%d %H:%M", time.localtime(mtime))
 
+            #校验模型完整性
             valid, missing = self.validate_model(model_path)
             info["status"] = "ok" if valid else f"missing: {', '.join(missing)}"
 
@@ -146,7 +133,7 @@ class ModelManager:
 
     @staticmethod
     def _calc_dir_size(path: str) -> int:
-        """计算目录总大小"""
+        #计算目录总大小
         total = 0
         for root, dirs, files in os.walk(path):
             for f in files:
@@ -158,7 +145,7 @@ class ModelManager:
 
     @staticmethod
     def _get_dir_mtime(path: str) -> Optional[float]:
-        """获取目录中最新的修改时间"""
+        #获取目录里最新的文件修改时间
         latest = 0
         for root, dirs, files in os.walk(path):
             for f in files:
@@ -172,7 +159,7 @@ class ModelManager:
 
     @staticmethod
     def _estimate_params(cfg: dict) -> str:
-        """从 config.json 估算参数量"""
+        #从config.json粗略估算参数量
         try:
             hidden = cfg.get("hidden_size", 0)
             layers = cfg.get("num_hidden_layers", 0)
@@ -186,10 +173,7 @@ class ModelManager:
 
     @staticmethod
     def validate_model(model_path: str) -> tuple:
-        """验证模型目录完整性
-
-        返回: (is_valid: bool, missing_files: list[str])
-        """
+        #验证模型目录是否完整，返回 (是否完整, 缺少的文件列表)
         if not os.path.isdir(model_path):
             return False, REQUIRED_FILES
 
@@ -198,6 +182,7 @@ class ModelManager:
             if not os.path.isfile(os.path.join(model_path, fname)):
                 missing.append(fname)
 
+        #检查有没有权重文件
         has_weights = False
         for f in os.listdir(model_path):
             if f.startswith("model") and (f.endswith(".safetensors") or f.endswith(".bin")):
@@ -210,25 +195,12 @@ class ModelManager:
 
     def download_model(self, model_id: str, target_dir: str = "",
                        progress_callback=None) -> str:
-        """下载模型（同步方法，应在子线程调用）
-
-        Args:
-            model_id: HuggingFace 模型 ID
-            target_dir: 下载目标目录，为空则用默认
-            progress_callback: 进度回调 (percent, description)
-
-        Returns:
-            下载后的目录路径
-
-        Raises:
-            ConnectionError: 网络问题
-            OSError: 磁盘问题
-        """
+        #下载模型（同步方法，要放在子线程里调）
         if not target_dir:
             target_dir = self._download_dir
         os.makedirs(target_dir, exist_ok=True)
 
-        # 如果已存在则跳过
+        #如果已经下载了就跳过
         model_name = model_id.split("/")[-1]
         model_dir = os.path.join(target_dir, model_name)
         if os.path.isdir(model_dir):
@@ -258,7 +230,7 @@ class ModelManager:
             raise
 
     def delete_model(self, model_path: str) -> bool:
-        """删除模型目录"""
+        #删除模型目录
         import shutil
         try:
             if os.path.isdir(model_path):
@@ -271,7 +243,7 @@ class ModelManager:
 
     @staticmethod
     def get_model_detail(model_path: str) -> dict:
-        """获取模型详细信息"""
+        #获取模型详细信息
         detail = {
             "path": model_path,
             "config": {},

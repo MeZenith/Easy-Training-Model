@@ -1,5 +1,3 @@
-"""Training monitor panel — loss chart, progress bar, result display"""
-
 import os
 
 from PySide6.QtCore import Signal
@@ -17,12 +15,7 @@ from ui.components.loss_chart import LossChart
 
 
 class TrainMonitorPanel(QWidget):
-    """Training monitor panel with loss chart, progress bar, and result grid
-
-    Signals:
-        stop_requested: user clicked stop training
-        back_requested: user clicked back to config
-    """
+    #训练监控面板 — loss曲线、进度条、结果展示
 
     stop_requested = Signal()
     back_requested = Signal()
@@ -50,6 +43,7 @@ class TrainMonitorPanel(QWidget):
         self._info.setStyleSheet("font-size: 13px; padding: 4px 0;")
         layout.addWidget(self._info)
 
+        #按钮行
         btn_row = QHBoxLayout()
         self._stop_btn = QPushButton()
         self._stop_btn.setObjectName("dangerBtn")
@@ -66,20 +60,24 @@ class TrainMonitorPanel(QWidget):
         btn_row.addWidget(self._back_btn)
         layout.addLayout(btn_row)
 
+        #loss曲线
         self._loss_chart = LossChart(parent=self, i18n=self._i18n)
         self._loss_chart.setMinimumHeight(300)
         layout.addWidget(self._loss_chart, 1)
 
+        #进度条
         self._progress_bar = QProgressBar()
         self._progress_bar.setRange(0, 100)
         self._progress_bar.setTextVisible(True)
         layout.addWidget(self._progress_bar)
 
+        #步骤标签
         self._step_label = QLabel()
         self._step_label.setObjectName("label-secondary")
         self._step_label.setStyleSheet("font-size: 13px;")
         layout.addWidget(self._step_label)
 
+        #结果面板
         self._result_panel = QWidget()
         self._result_panel.setVisible(False)
         result_layout = QVBoxLayout(self._result_panel)
@@ -97,7 +95,7 @@ class TrainMonitorPanel(QWidget):
         layout.addWidget(self._result_panel)
 
     def set_training_state(self, model_name: str, info_text: str):
-        """Initialize monitor panel for new training session"""
+        #初始化监控面板
         self._loss_values = []
         self._title.setText(self._i18n.t("train.training_label").format(model_name))
         self._info.setText(info_text)
@@ -108,17 +106,15 @@ class TrainMonitorPanel(QWidget):
         self._back_btn.setVisible(False)
 
     def update_progress(self, pct: int, desc: str):
-        """Update progress bar and step label"""
         self._progress_bar.setValue(pct)
         self._step_label.setText(desc)
 
     def add_metric(self, step: int, loss: float, lr: float = 0):
-        """Add a loss data point"""
         self._loss_values.append(loss)
         self._loss_chart.add_point(step, loss, lr)
 
     def set_finished(self, result: dict):
-        """Training complete — update chart and show results"""
+        #训练完成 — 更新曲线和结果
         self._progress_bar.setValue(100)
         self._step_label.setText(self._i18n.t("train.complete"))
         self._loss_chart.update_data(self._loss_values)
@@ -126,11 +122,10 @@ class TrainMonitorPanel(QWidget):
         self._back_btn.setVisible(True)
 
     def set_failed(self, error_code: str, detail: str):
-        """Training failed — show error state"""
         self._back_btn.setVisible(True)
 
     def _show_result(self, r: dict):
-        """Display training result metrics"""
+        #展示训练结果数据
         self._result_panel.setVisible(True)
         self._result_title_label.setText(self._i18n.t("train.training_complete"))
 
@@ -163,7 +158,6 @@ class TrainMonitorPanel(QWidget):
             add_row(col, row, label, value)
 
     def refresh_texts(self):
-        """Update all translatable text"""
         self._stop_btn.setText(self._i18n.t("train.stop"))
         self._back_btn.setText(self._i18n.t("train.back"))
         self._result_title_label.setText(self._i18n.t("train.training_complete"))

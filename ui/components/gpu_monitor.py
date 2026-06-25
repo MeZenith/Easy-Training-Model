@@ -1,5 +1,3 @@
-"""GPU 显存监控条组件"""
-
 import logging
 
 from PySide6.QtCore import QTimer
@@ -11,7 +9,7 @@ logger = logging.getLogger("EasyTinking")
 
 
 class GPUMonitor(QWidget):
-    """GPU 显存实时监控条"""
+    #GPU显存实时监控条
 
     def __init__(self, parent=None, i18n=None):
         super().__init__(parent)
@@ -20,12 +18,14 @@ class GPUMonitor(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(8)
 
+        #标签
         txt_gpu = "GPU:" if i18n is None else i18n.t("component.gpu_label")
         self._label = QLabel(txt_gpu)
         self._label.setObjectName("label-secondary")
         self._label.setStyleSheet("font-size: 12px;")
         layout.addWidget(self._label)
 
+        #进度条
         self._bar = QProgressBar()
         self._bar.setRange(0, 100)
         self._bar.setValue(0)
@@ -33,6 +33,7 @@ class GPUMonitor(QWidget):
         self._bar.setTextVisible(False)
         layout.addWidget(self._bar, 1)
 
+        #数值显示
         txt_na = "N/A" if self._i18n is None else self._i18n.t("component.na")
         self._value_label = QLabel(txt_na)
         self._value_label.setObjectName("label-secondary")
@@ -40,14 +41,14 @@ class GPUMonitor(QWidget):
         self._value_label.setMinimumWidth(80)
         layout.addWidget(self._value_label)
 
-        # 每3秒自动刷新
+        #每3秒刷新
         self._timer = QTimer(self)
         self._timer.timeout.connect(self.refresh)
         self._timer.start(3000)
         self.refresh()
 
     def refresh(self):
-        """刷新 GPU 信息"""
+        #查询并显示GPU信息
         try:
             gpus = get_gpu_info()
             if gpus:
@@ -68,5 +69,5 @@ class GPUMonitor(QWidget):
             self._value_label.setText(txt_err)
 
     def stop(self):
-        """停止定时器"""
+        #暂停刷新
         self._timer.stop()

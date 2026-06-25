@@ -1,5 +1,3 @@
-"""系统信息检测"""
-
 import logging
 import os
 import platform
@@ -8,7 +6,7 @@ logger = logging.getLogger("EasyTinking")
 
 
 def get_system_info() -> dict:
-    """获取系统信息"""
+    #获取系统信息
     info = {
         "os": platform.system(),
         "os_version": platform.version(),
@@ -46,7 +44,7 @@ def get_system_info() -> dict:
 
 
 def get_dependency_versions() -> dict:
-    """获取关键依赖版本"""
+    #获取关键依赖的版本
     deps = {}
     for name in ["torch", "transformers", "unsloth", "trl", "peft",
                  "huggingface_hub", "accelerate", "bitsandbytes",

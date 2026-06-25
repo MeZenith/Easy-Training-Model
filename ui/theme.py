@@ -1,5 +1,3 @@
-"""主题与样式管理 — 加载 QSS 文件应用深色/浅色主题"""
-
 import logging
 import os
 import sys
@@ -11,6 +9,7 @@ logger = logging.getLogger("EasyTinking")
 
 
 def _load_qss(filename: str) -> str:
+    #加载QSS样式文件
     try:
         base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         if getattr(sys, "frozen", False):
@@ -25,17 +24,15 @@ def _load_qss(filename: str) -> str:
     return ""
 
 
+#预加载两份主题
 _DARK_QSS = _load_qss("professional_theme.qss")
 _LIGHT_QSS = _load_qss("light_theme.qss") or _DARK_QSS
 
 
 class ThemeManager(QObject):
-    """主题管理器 (单例) — 深色/浅色切换
+    #主题管理器（单例），深色/浅色切换
 
-    Signals:
-        theme_changed(str): 切换后发出主题名 ("dark" / "light")
-    """
-    theme_changed = Signal(str)
+    theme_changed = Signal(str)     #发主题名 dark/light
     _instance = None
 
     @classmethod
@@ -49,6 +46,7 @@ class ThemeManager(QObject):
         cls._instance = None
 
     def apply_theme(self, app: QApplication, theme: str):
+        #应用主题
         if theme == "light":
             app.setStyleSheet(_LIGHT_QSS)
         else:

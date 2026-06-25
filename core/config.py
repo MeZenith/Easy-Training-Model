@@ -87,7 +87,7 @@ _DEFAULT_CONFIG = {
 
 
 class AppConfig:
-    """应用配置管理，支持自动保存和线程安全"""
+    #应用配置管理，支持点号路径取值，线程安全
 
     def __init__(self, config_path: str = ""):
         if not config_path:
@@ -101,7 +101,7 @@ class AppConfig:
         self._fixup_workspace()
 
     def _fixup_workspace(self):
-        """修复因目录移动/重命名导致的 workspace 路径不一致"""
+        #修复因为目录移动/重命名导致的workspace路径不一致
         resolved = self._resolve_workspace()
         saved = self._data.get("workspace", "")
         if saved and os.path.normpath(saved) != os.path.normpath(resolved):
@@ -113,7 +113,7 @@ class AppConfig:
                 self.save()
 
     def _resolve_workspace(self) -> str:
-        """解析工作目录路径，兼容 PyInstaller 打包"""
+        #解析工作目录，兼容PyInstaller打包
         if getattr(sys, "frozen", False):
             base = os.path.dirname(sys.executable)
         else:
@@ -121,7 +121,7 @@ class AppConfig:
         return os.path.join(base, "workspace")
 
     def _ensure_dirs(self):
-        """确保工作目录及子目录存在"""
+        #确保工作目录和子目录都存在
         ws = self._data.get("workspace") or self._resolve_workspace()
         if not self._data["workspace"]:
             self._data["workspace"] = ws
@@ -134,7 +134,7 @@ class AppConfig:
         os.makedirs(os.path.dirname(self._config_path), exist_ok=True)
 
     def _load(self):
-        """从文件加载配置"""
+        #从文件加载配置
         try:
             if os.path.isfile(self._config_path):
                 with open(self._config_path, "r", encoding="utf-8") as f:
@@ -146,7 +146,7 @@ class AppConfig:
             logger.warning(f"Cannot read config file {self._config_path}: {e}")
 
     def _deep_merge(self, base, override):
-        """深度合并字典，override 覆盖 base"""
+        #深度合并字典
         for key, value in override.items():
             if key in base and isinstance(base[key], dict) and isinstance(value, dict):
                 self._deep_merge(base[key], value)
@@ -154,7 +154,7 @@ class AppConfig:
                 base[key] = value
 
     def save(self):
-        """保存配置到文件（子线程安全）"""
+        #保存到文件，先写临时文件再替换（防止写入过程中崩溃丢数据）
         with self._lock:
             try:
                 os.makedirs(os.path.dirname(self._config_path), exist_ok=True)
@@ -165,11 +165,12 @@ class AppConfig:
                     os.replace(tmp, self._config_path)
                 else:
                     os.rename(tmp, self._config_path)
+                # logger.debug("Config saved to %s", self._config_path)
             except OSError as e:
                 logger.error(f"Failed to save config to {self._config_path}: {e}")
 
     def get(self, key: str, default=None):
-        """获取配置值，支持点号分隔路径如 'window.width'"""
+        #取配置值，支持点号分隔：get("window.width")
         with self._lock:
             keys = key.split(".")
             node = self._data
@@ -181,7 +182,7 @@ class AppConfig:
             return deepcopy(node)
 
     def set(self, key: str, value):
-        """设置配置值并自动保存，支持点号分隔路径"""
+        #设配置值并自动保存
         with self._lock:
             keys = key.split(".")
             node = self._data
@@ -193,12 +194,12 @@ class AppConfig:
         self.save()
 
     def get_all(self) -> dict:
-        """返回完整配置的深拷贝"""
+        #返回全部配置的深拷贝
         with self._lock:
             return deepcopy(self._data)
 
     def reset_defaults(self, key: str = ""):
-        """重置指定路径或全部为默认值"""
+        #重置为默认值
         with self._lock:
             if key:
                 keys = key.split(".")

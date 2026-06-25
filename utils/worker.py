@@ -2,7 +2,7 @@ from PySide6.QtCore import QObject, QThread, Signal
 
 
 class WorkerSignals(QObject):
-    """子线程通用信号定义"""
+    #子线程通用信号
     progress = Signal(int, str)
     finished = Signal(dict)
     error = Signal(str, str)
@@ -10,7 +10,7 @@ class WorkerSignals(QObject):
 
 
 class BaseWorker(QThread):
-    """所有耗时操作子线程的基类"""
+    #所有耗时操作的子线程基类
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -18,7 +18,7 @@ class BaseWorker(QThread):
         self._cancelled = False
 
     def cancel(self):
-        """请求取消任务"""
+        #请求取消
         self._cancelled = True
 
     @property
@@ -26,7 +26,6 @@ class BaseWorker(QThread):
         return self._cancelled
 
     def run(self):
-        """重写 run 以确保线程异常正确传播"""
         import traceback
         try:
             result = self.do_work()
@@ -39,5 +38,5 @@ class BaseWorker(QThread):
             self.signals.error.emit("ERR_UNKNOWN", str(e))
 
     def do_work(self) -> dict:
-        """子类重写此方法实现具体工作"""
+        #子类重写这个方法实现具体逻辑
         raise NotImplementedError

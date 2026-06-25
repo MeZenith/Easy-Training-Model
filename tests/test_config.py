@@ -1,5 +1,4 @@
-"""Tests for core/config.py — AppConfig thread-safe JSON configuration"""
-
+#config模块的单元测试
 import os
 import tempfile
 

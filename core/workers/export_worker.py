@@ -1,13 +1,3 @@
-"""独立导出进程 — 通过 --config 接收参数，执行 GGUF 转换/量化
-
-协议:
-    PROGRESS:<pct>:<desc>  → 进度
-    LOG:<message>          → 日志
-    RESULT:<json>          → 完成 {"files": [...], "errors": [...]}
-    ERROR:<code>:<detail>  → 错误
-    DONE                   → 结束
-"""
-
 import argparse
 import gc
 import json
@@ -22,8 +12,8 @@ try:
     elif hasattr(sys.stdout, "buffer"):
         import io
         sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
-except Exception:
-    pass
+except Exception as e:
+    print(f"LOG:stdout reconfigure failed: {e}", flush=True)
 
 logging.basicConfig(level=logging.WARNING, stream=sys.stderr)
 logger = logging.getLogger("export_worker")
@@ -50,6 +40,7 @@ def error(code: str, detail: str):
 
 
 def _hf_to_gguf_name(name: str) -> str:
+    #HF张量名转GGUF名
     if name == "model.embed_tokens.weight":
         return "token_embd.weight"
     if name == "model.norm.weight":
@@ -79,13 +70,14 @@ def _hf_to_gguf_name(name: str) -> str:
 
 
 def _write_gguf(path: str, config, tokenizer, model) -> None:
-    """写入完整 GGUF F16 文件"""
+    #写入GGUF F16文件
     import torch
     from gguf import GGUFWriter, TokenType
 
     arch = getattr(config, "model_type", "qwen2")
     writer = GGUFWriter(path, arch)
 
+    #模型元数据
     writer.add_name(getattr(config, "_name_or_path", ""))
     writer.add_context_length(getattr(config, "max_position_embeddings", 2048))
     writer.add_embedding_length(config.hidden_size)
@@ -96,8 +88,9 @@ def _write_gguf(path: str, config, tokenizer, model) -> None:
     writer.add_head_count_kv(num_kv)
     writer.add_rope_freq_base(getattr(config, "rope_theta", 1000000.0))
     writer.add_layer_norm_rms_eps(getattr(config, "rms_norm_eps", 1e-6))
-    writer.add_file_type(1)
+    writer.add_file_type(0)
 
+    #词表
     vocab = tokenizer.get_vocab()
     vocab_size = max(vocab.values()) + 1
     for name, param in model.named_parameters():
@@ -114,6 +107,7 @@ def _write_gguf(path: str, config, tokenizer, model) -> None:
     writer.add_token_list(tokens)
     writer.add_token_scores([0.0] * vocab_size)
 
+    #特殊token标记
     specials = set()
     for key in ("pad_token", "bos_token", "eos_token", "unk_token"):
         tok = getattr(tokenizer, key, None)
@@ -121,12 +115,10 @@ def _write_gguf(path: str, config, tokenizer, model) -> None:
             specials.add(tok)
     token_types = []
     for tok in tokens:
-        token_types.append(
-            TokenType.CONTROL if tok in specials or tok.startswith("<|")
-            else TokenType.NORMAL
-        )
+        token_types.append(TokenType.CONTROL if tok in specials or tok.startswith("<|") else TokenType.NORMAL)
     writer.add_token_types(token_types)
 
+    #BPE merges
     mergeable = getattr(tokenizer, "_mergeable_ranks", None)
     if mergeable:
         merges = [" ".join(p) for p, _ in sorted(mergeable.items(), key=lambda x: x[1])]
@@ -142,23 +134,30 @@ def _write_gguf(path: str, config, tokenizer, model) -> None:
             writer.add_token_merges(merges)
 
     writer.add_tokenizer_model("gpt2")
-    for attr, method in [
-        ("bos_token_id", writer.add_bos_token_id),
-        ("eos_token_id", writer.add_eos_token_id),
-        ("pad_token_id", writer.add_pad_token_id),
-        ("unk_token_id", writer.add_unk_token_id),
-    ]:
-        val = getattr(tokenizer, attr, None)
-        if val is not None:
-            method(val)
+
+    #特殊token ID（不用循环，直接写）
+    bos_id = getattr(tokenizer, "bos_token_id", None)
+    if bos_id is not None:
+        writer.add_bos_token_id(bos_id)
+    eos_id = getattr(tokenizer, "eos_token_id", None)
+    if eos_id is not None:
+        writer.add_eos_token_id(eos_id)
+    pad_id = getattr(tokenizer, "pad_token_id", None)
+    if pad_id is not None:
+        writer.add_pad_token_id(pad_id)
+    unk_id = getattr(tokenizer, "unk_token_id", None)
+    if unk_id is not None:
+        writer.add_unk_token_id(unk_id)
+
     writer.add_add_bos_token(False)
     writer.add_add_eos_token(False)
 
+    #逐张量写入
     total = sum(1 for _ in model.named_parameters())
     with torch.no_grad():
         for i, (name, param) in enumerate(model.named_parameters()):
             gguf_name = _hf_to_gguf_name(name)
-            tensor = param.detach().cpu().numpy()
+            tensor = param.detach().cpu().float().numpy()
             writer.add_tensor(gguf_name, tensor)
             del tensor
             if (i + 1) % 100 == 0:
@@ -170,9 +169,21 @@ def _write_gguf(path: str, config, tokenizer, model) -> None:
     writer.close()
 
 
+_QUANT_ENUM_MAP = {
+    "Q8_0": "Q8_0",
+    "Q4_K_M": "Q4_0",
+}
+
+
+def _get_quant_enum(quant_name: str):
+    from gguf import GGMLQuantizationType
+    enum_name = _QUANT_ENUM_MAP.get(quant_name, quant_name)
+    return getattr(GGMLQuantizationType, enum_name, None)
+
+
 def _quantize_gguf(input_path: str, output_path: str, quant_type: str) -> None:
-    """量化 GGUF F16 → Q8_0 / Q4_K_M"""
-    from gguf import GGUFReader, GGUFWriter
+    #GGUF量化
+    from gguf import GGUFReader, GGUFValueType, GGUFWriter
     from gguf.quants import quantize
 
     rdr = GGUFReader(input_path)
@@ -189,24 +200,86 @@ def _quantize_gguf(input_path: str, output_path: str, quant_type: str) -> None:
                 arch = str(v)
             break
 
+    writer = GGUFWriter(output_path, arch)
+
+    #复制元数据
+    for field in rdr.fields.values():
+        types = list(field.types)
+        if not types:
+            continue
+        if field.name in ("general.architecture",) or field.name.startswith("GGUF."):
+            continue
+
+        if GGUFValueType.ARRAY in types:
+            indices = list(field.data)
+            if not indices:
+                continue
+            elem_type = types[-1]
+            elements = []
+            for idx in indices:
+                part = field.parts[idx]
+                if elem_type == GGUFValueType.STRING:
+                    if hasattr(part, "tobytes"):
+                        elements.append(bytes(part).decode("utf-8", errors="replace"))
+                    elif isinstance(part, bytes):
+                        elements.append(part.decode("utf-8", errors="replace"))
+                    else:
+                        elements.append(str(part))
+                elif hasattr(part, "item"):
+                    elements.append(part.item())
+                else:
+                    elements.append(part)
+            try:
+                writer.add_array(field.name, elements)
+            except Exception as e:
+                logger.warning("Failed to copy array field %s: %s", field.name, e)
+            continue
+
+        if len(types) != 1:
+            continue
+        vtype = types[0]
+        val = field.parts[-1]
+
+        if vtype == GGUFValueType.STRING:
+            if hasattr(val, "tobytes"):
+                val = bytes(val).decode("utf-8", errors="replace")
+            elif isinstance(val, bytes):
+                val = val.decode("utf-8", errors="replace")
+            else:
+                continue
+        elif hasattr(val, "item") and hasattr(val, "size") and val.size == 1:
+            val = val.item()
+        elif not isinstance(val, (int, float, bool)):
+            continue
+
+        try:
+            writer.add_key_value(field.name, val, vtype)
+        except Exception as e:
+            logger.warning("Failed to copy metadata field %s: %s", field.name, e)
+
+    #量化张量
     total = len(rdr.tensors)
-    qtype = getattr(__import__("gguf.quants", fromlist=[quant_type]), quant_type, None)
-    items = []
+    qtype = _get_quant_enum(quant_type)
+
+    if qtype is None:
+        log(f"Unknown quant type: {quant_type}, keeping F16")
 
     for i, tensor in enumerate(rdr.tensors):
         data = tensor.data
+        tensor_qtype = None
         if tensor.name.endswith("weight") and len(data.shape) >= 2 and qtype:
             try:
                 data = quantize(data, qtype)
-            except Exception:
-                pass
-        items.append((tensor.name, data, tensor.shape))
+                tensor_qtype = qtype
+            except Exception as e:
+                log(f"Quant failed for {tensor.name}: {e}, keeping F16")
+        if tensor_qtype is not None:
+            writer.add_tensor(tensor.name, data, raw_dtype=tensor_qtype)
+        else:
+            writer.add_tensor(tensor.name, data, raw_shape=tensor.shape)
         if (i + 1) % 100 == 0:
             progress(10 + int(80 * (i + 1) / total), f"Quantizing {i + 1}/{total}")
 
-    writer = GGUFWriter(output_path, arch)
-    for name, data, shape in items:
-        writer.add_tensor(name, data, raw_shape=shape)
     writer.write_header_to_file()
     writer.write_kv_data_to_file()
     writer.write_tensors_to_file()
@@ -222,6 +295,7 @@ def main():
     parser.add_argument("--config", required=True)
     args = parser.parse_args()
 
+    #读取配置
     try:
         with open(args.config, "r", encoding="utf-8") as f:
             cfg = json.load(f)
@@ -242,26 +316,34 @@ def main():
     os.makedirs(out_dir, exist_ok=True)
 
     try:
+        #加载配置
         progress(0, "Loading model config...")
         log(f"Model path: {model_path}")
         config = AutoConfig.from_pretrained(model_path, trust_remote_code=True)
-        log(f"Architecture: {getattr(config, 'model_type', '?')}, "
-            f"Hidden: {config.hidden_size}, Layers: {config.num_hidden_layers}")
+        log(
+            f"Architecture: {getattr(config, 'model_type', '?')}, "
+            f"Hidden: {config.hidden_size}, Layers: {config.num_hidden_layers}"
+        )
 
+        #加载tokenizer
         progress(1, "Loading tokenizer...")
         tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
         log(f"Tokenizer loaded, vocab size: {tokenizer.vocab_size}")
 
+        #加载模型
         progress(2, "Loading model weights...")
         log("This may take a minute...")
         use_fp32 = any(f in formats for f in ("gguf_FP32", "16bit"))
         dtype = torch.float32 if use_fp32 else torch.float16
         model = AutoModelForCausalLM.from_pretrained(
-            model_path, trust_remote_code=True,
-            device_map="cpu", torch_dtype=dtype,
+            model_path,
+            trust_remote_code=True,
+            device_map="cpu",
+            torch_dtype=dtype,
         )
         log("Model loaded")
 
+        #合并lora
         if lora_path and os.path.isdir(lora_path):
             progress(5, "Merging LoRA adapter...")
             log(f"LoRA path: {lora_path}")
@@ -292,7 +374,7 @@ def main():
                     except Exception as e:
                         raise RuntimeError(f"Write F16 failed: {e}") from e
 
-                    if quant == "F16":
+                    if quant in ("F16", "FP32"):
                         final_path = f16_path
                     else:
                         progress(base_pct + 40, f"Quantizing to {quant}...")
@@ -329,7 +411,12 @@ def main():
 
     except Exception as e:
         logger.exception("Export process failed")
-        error("ERR_EXPORT", str(e))
+        err_msg = str(e)
+        if getattr(e, "args", None):
+            sub = "; ".join(str(a) for a in e.args[1:] if a)
+            if sub:
+                err_msg = f"{e.args[0]}; {sub}"
+        error("ERR_EXPORT", err_msg)
         sys.exit(1)
 
 

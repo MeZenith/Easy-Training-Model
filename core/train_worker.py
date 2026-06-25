@@ -1,24 +1,10 @@
-"""独立训练进程 — 通过 argparse --config 接收训练参数 JSON，执行纯 PyTorch 训练循环
-
-协议格式:
-    stdout 每一行以前缀开头：
-        PROGRESS:<pct>:<desc>  → ProcessTrainer.progress Signal
-        LOG:<message>          → ProcessTrainer.log_message Signal
-        METRIC:step=N loss=0.5 lr=0.0001  → ProcessTrainer.metric Signal
-        RESULT:<json>          → ProcessTrainer.finished Signal
-        ERROR:<code>:<detail>  → ProcessTrainer.error Signal
-        DONE                   → 忽略
-
-不依赖 trainer.py / trl / accelerate / datasets 等外部训练框架。
-"""
-
 import argparse
 import json
 import os
 import sys
 import time
 
-# Force UTF-8 encoding for stdout when piped to QProcess on Windows
+# Windows下QProcess管道通信需要强制UTF-8
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 elif hasattr(sys.stdout, "buffer"):
@@ -35,10 +21,12 @@ def progress(pct: int, desc: str):
 
 
 def main():
+    #接收参数
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", required=True)
     args = parser.parse_args()
 
+    #读取配置
     try:
         with open(args.config, "r", encoding="utf-8") as f:
             cfg = json.load(f)
@@ -46,6 +34,7 @@ def main():
         log(f"ERROR:ERR_CONFIG:Cannot read config: {e}")
         sys.exit(1)
 
+    #取出所有训练参数
     model_path = cfg.get("model_path", "")
     if model_path:
         model_path = os.path.normpath(model_path).replace("\\", "/")
@@ -68,6 +57,7 @@ def main():
     weight_decay = cfg.get("weight_decay", 0.01)
     seed = cfg.get("seed", 3407)
 
+    #检查必要参数
     if not model_path or not os.path.isdir(model_path):
         log(f"ERROR:ERR_MODEL:Model path not found: {model_path}")
         sys.exit(1)
@@ -78,7 +68,7 @@ def main():
     log(f"LOG:Model: {os.path.basename(model_path)}")
     log(f"LOG:Samples: {len(data)}, Epochs: {epochs}, Batch: {batch_size}, LR: {learning_rate}")
 
-    # ---- torch ----
+    #加载torch
     try:
         import torch
         log(f"LOG:CUDA: {torch.cuda.is_available()}")
@@ -89,7 +79,7 @@ def main():
         log(f"ERROR:ERR_CUDA:torch init: {e}")
         sys.exit(1)
 
-    # ---- 仅导入 AutoModel + AutoTokenizer（已验证安全）----
+    #导入transformers
     try:
         log("LOG:Importing transformers (core)...")
         from transformers import AutoModelForCausalLM, AutoTokenizer
@@ -97,7 +87,7 @@ def main():
         log(f"ERROR:ERR_DEP:transformers core: {e}")
         sys.exit(1)
 
-    # ---- tokenizer ----
+    #加载tokenizer
     progress(2, "Loading tokenizer...")
     try:
         tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
@@ -108,7 +98,7 @@ def main():
         log(f"ERROR:ERR_TOKENIZER:{e}")
         sys.exit(1)
 
-    # ---- model ----
+    #加载模型
     progress(3, "Loading model (fp16)...")
     try:
         model = AutoModelForCausalLM.from_pretrained(
@@ -124,7 +114,7 @@ def main():
         log(f"ERROR:ERR_LOAD:{e}")
         sys.exit(1)
 
-    # ---- peft ----
+    #应用LoRA
     progress(6, "Importing peft...")
     try:
         from peft import LoraConfig, TaskType, get_peft_model
@@ -149,7 +139,7 @@ def main():
         log(f"ERROR:ERR_LORA:{e}")
         sys.exit(1)
 
-    # ---- 分词数据 ----
+    #把训练数据转成input_ids
     progress(10, "Tokenizing dataset...")
     task_template = "### Instruction:\n{instruction}\n### Input:\n{input}\n### Response:\n{output}"
 
@@ -173,7 +163,7 @@ def main():
 
     log(f"LOG:Tokenized {len(tokenized_items)} samples")
 
-    # ---- PyTorch Dataset ----
+    #构建数据集
     class SimpleDataset(torch.utils.data.Dataset):
         def __init__(self, items):
             self._items = items
@@ -191,7 +181,7 @@ def main():
 
     train_dataset = SimpleDataset(tokenized_items)
 
-    # ---- DataLoader ----
+    #DataLoader
     from torch.utils.data import DataLoader
     dataloader = DataLoader(
         train_dataset,
@@ -200,7 +190,7 @@ def main():
         collate_fn=_collate_fn,
     )
 
-    # ---- Optimizer & Scheduler ----
+    #设置优化器
     log("LOG:Setting up optimizer...")
     optimizer = torch.optim.AdamW(
         model.parameters(),
@@ -222,11 +212,11 @@ def main():
     else:
         scheduler = torch.optim.lr_scheduler.ConstantLR(optimizer)
 
-    # ---- 混合精度 ----
+    #混合精度
     use_amp = torch.cuda.is_available()
     scaler = torch.amp.GradScaler("cuda") if use_amp else None
 
-    # ---- 训练循环 ----
+    #开始训练
     torch.manual_seed(seed)
     model.train()
     device = next(model.parameters()).device
@@ -246,6 +236,7 @@ def main():
         for step, batch in enumerate(dataloader):
             batch = {k: v.to(device) for k, v in batch.items()}
 
+            #混合精度前向传播
             with torch.amp.autocast("cuda") if use_amp else torch.no_grad():
                 outputs = model(**batch)
                 loss = outputs.loss / grad_accum
@@ -255,6 +246,7 @@ def main():
             epoch_loss += loss.item()
             epoch_steps += 1
 
+            #梯度累积够了就更新参数
             if (step + 1) % grad_accum == 0 or (step + 1) == len(dataloader):
                 if scaler:
                     scaler.unscale_(optimizer)
@@ -265,6 +257,7 @@ def main():
                     torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
                     optimizer.step()
 
+                #warmup阶段手动调学习率
                 if global_step < warmup:
                     lr_scale = (global_step + 1) / max(warmup, 1)
                     for pg in optimizer.param_groups:
@@ -275,6 +268,7 @@ def main():
                 optimizer.zero_grad()
                 global_step += 1
 
+                #每5步汇报一次进度
                 if global_step % 5 == 0 or global_step == 1:
                     avg_loss = epoch_loss / max(epoch_steps, 1)
                     all_losses.append(avg_loss)
@@ -293,12 +287,12 @@ def main():
     loss_drop = round((initial_loss - final_loss) / initial_loss * 100, 1) if initial_loss and initial_loss > 0 else 0
     log(f"LOG:Training done in {elapsed:.1f}s, final_loss={final_loss:.4f}")
 
-    # ---- 保存 ----
+    #保存LoRA权重
     progress(90, "Saving LoRA weights...")
     model.save_pretrained(output_dir)
     tokenizer.save_pretrained(output_dir)
 
-    # ---- 元数据 ----
+    #写入训练元数据
     metadata = {
         "model_path": model_path,
         "model_name": os.path.basename(model_path),
@@ -324,6 +318,7 @@ def main():
     except OSError:
         pass
 
+    #返回结果给主进程
     result = {
         "model_path": model_path,
         "model_name": os.path.basename(model_path),
@@ -347,11 +342,11 @@ def main():
 
 
 def _collate_fn(batch):
-    """动态 padding：将不等长序列 pad 到 batch 内最长"""
+    #动态padding：把不等长序列补到batch内最长
     import torch
 
     max_len = max(item["input_ids"].size(0) for item in batch)
-    pad_id = 0  # tokenizer pad_token_id, default 0
+    pad_id = 0
 
     padded_input_ids = []
     padded_attention = []

@@ -1,5 +1,4 @@
-"""Tests for utils/i18n.py — internationalization manager"""
-
+#i18n模块的单元测试
 import json
 import os
 import tempfile

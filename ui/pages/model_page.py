@@ -1,5 +1,3 @@
-"""Model Management page - Full implementation"""
-
 import logging
 import os
 import shutil
@@ -35,6 +33,8 @@ logger = logging.getLogger("EasyTinking")
 
 
 class ModelPage(QWidget):
+    #模型管理页
+
     model_selected = Signal(str)
 
     def __init__(self, config, i18n, parent=None):
@@ -53,7 +53,7 @@ class ModelPage(QWidget):
         layout.setContentsMargins(16, 16, 16, 16)
         layout.setSpacing(12)
 
-        # Title row
+        #标题行
         title_row = QHBoxLayout()
         self._title_label = QLabel()
         self._title_label.setStyleSheet("font-size: 22px; font-weight: bold;")
@@ -63,11 +63,10 @@ class ModelPage(QWidget):
         title_row.addWidget(self._refresh_btn)
         layout.addLayout(title_row)
 
-        # Main content area
         content_split = QHBoxLayout()
         layout.addLayout(content_split, 1)
 
-        # Left: Downloaded models list
+        #左侧：已下载模型列表
         left_panel = QVBoxLayout()
         content_split.addLayout(left_panel, 3)
 
@@ -85,15 +84,14 @@ class ModelPage(QWidget):
         scroll.setWidget(self._model_list_container)
         left_panel.addWidget(scroll, 1)
 
-        # Right: Operations panel
+        #右侧：操作面板
         right_panel = QVBoxLayout()
         content_split.addLayout(right_panel, 2)
 
-        # Download area
+        #下载区域
         download_group = QGroupBox()
         download_layout = QVBoxLayout(download_group)
 
-        # Built-in model selection
         form_row = QFormLayout()
         self._builtin_combo = QComboBox()
         for m in BUILTIN_MODELS:
@@ -102,7 +100,6 @@ class ModelPage(QWidget):
         form_row.addRow(self._i18n.t("model.builtin_list"), self._builtin_combo)
         download_layout.addLayout(form_row)
 
-        # Download directory
         download_layout.addWidget(QLabel(self._i18n.t("model.select_dir")))
         dir_row = QHBoxLayout()
         self._dir_edit = QLineEdit()
@@ -113,7 +110,7 @@ class ModelPage(QWidget):
         dir_row.addWidget(self._dir_browse_btn)
         download_layout.addLayout(dir_row)
 
-        # Mirror source
+        #镜像源
         mirror_row = QHBoxLayout()
         self._mirror_edit = QLineEdit()
         self._mirror_edit.setText(self._config.get("hf_mirror", "https://hf-mirror.com"))
@@ -122,7 +119,6 @@ class ModelPage(QWidget):
         mirror_row.addWidget(self._mirror_edit, 1)
         download_layout.addLayout(mirror_row)
 
-        # Download button and progress
         self._download_btn = QPushButton(self._i18n.t("model.download"))
         self._download_btn.setObjectName("primaryBtn")
         self._download_btn.setMinimumHeight(36)
@@ -140,7 +136,7 @@ class ModelPage(QWidget):
         right_panel.addWidget(download_group)
         self._download_group = download_group
 
-        # Model detail area
+        #模型详情
         detail_group = QGroupBox()
         detail_layout = QVBoxLayout(detail_group)
         self._detail_text = QTextEdit()
@@ -151,7 +147,7 @@ class ModelPage(QWidget):
         right_panel.addWidget(detail_group)
         self._detail_group = detail_group
 
-        # LoRA management
+        #LoRA列表
         lora_group = QGroupBox()
         lora_layout = QVBoxLayout(lora_group)
         self._lora_list = QListWidget()
@@ -176,7 +172,6 @@ class ModelPage(QWidget):
         self._mirror_edit.editingFinished.connect(self._on_mirror_changed)
 
     def _init_manager(self):
-        """Lazy-init ModelManager"""
         if self._manager is None:
             download_dir = self._config.get("download_dir", "")
             if not download_dir:
@@ -193,12 +188,10 @@ class ModelPage(QWidget):
             )
             if ok and model_id.strip():
                 self._custom_model_id = model_id.strip()
-            # Switch back to first item
             if self._builtin_combo.count() > 0:
                 self._builtin_combo.setCurrentIndex(0)
 
     def _on_browse_dir(self):
-        """Select download directory"""
         dir_path = QFileDialog.getExistingDirectory(
             self, self._i18n.t("model.select_dir")
         )
@@ -209,14 +202,13 @@ class ModelPage(QWidget):
                 self._manager.download_dir = dir_path
 
     def _on_mirror_changed(self):
-        """Mirror source changed"""
         mirror = self._mirror_edit.text().strip()
         self._config.set("hf_mirror", mirror)
         if self._manager:
             self._manager.hf_mirror = mirror
 
     def _on_download(self):
-        """Start model download"""
+        #开始下载模型
         self._init_manager()
 
         data = self._builtin_combo.currentData()
@@ -234,7 +226,7 @@ class ModelPage(QWidget):
         download_dir = self._dir_edit.text()
         hf_mirror = self._mirror_edit.text().strip()
 
-        # Check disk space
+        #检查磁盘空间
         try:
             disk_usage = shutil.disk_usage(download_dir)
             free_gb = disk_usage.free / (1024 ** 3)
@@ -247,7 +239,7 @@ class ModelPage(QWidget):
             logger.warning(f"Failed to check disk space for {download_dir}")
             pass
 
-        # Check if already downloaded
+        #检查是否已下载
         model_name = model_id.split("/")[-1]
         model_path = os.path.join(download_dir, model_name)
         if os.path.isdir(model_path):
@@ -258,7 +250,7 @@ class ModelPage(QWidget):
                 self._refresh_model_list()
                 return
 
-        # Start download thread
+        #启动下载线程
         self._download_btn.setEnabled(False)
         self._download_btn.setText(self._i18n.t("model.downloading"))
         self._progress_bar.setValue(0)
@@ -270,12 +262,10 @@ class ModelPage(QWidget):
         self._download_worker.start()
 
     def _on_download_progress(self, percent: int, desc: str):
-        """Download progress callback"""
         self._progress_bar.setValue(percent)
         self._progress_label.setText(desc)
 
     def _on_download_finished(self, result: dict):
-        """Download complete callback"""
         self._download_btn.setEnabled(True)
         self._download_btn.setText(self._i18n.t("model.download"))
         self._progress_bar.setValue(100)
@@ -283,7 +273,6 @@ class ModelPage(QWidget):
         self._refresh_model_list()
 
     def _on_download_error(self, error_code: str, detail: str):
-        """Download error callback"""
         self._download_btn.setEnabled(True)
         self._download_btn.setText(self._i18n.t("model.download"))
         self._progress_bar.setValue(0)
@@ -291,9 +280,8 @@ class ModelPage(QWidget):
         QMessageBox.critical(self, self._i18n.t("common.error"), msg)
 
     def _refresh_model_list(self):
-        """Refresh downloaded models list"""
+        #刷新已下载模型列表
         self._init_manager()
-        # Clear existing cards
         while self._model_list_layout.count():
             item = self._model_list_layout.takeAt(0)
             if item.widget():
@@ -332,6 +320,7 @@ class ModelPage(QWidget):
         )
 
     def _show_model_detail(self, model_path: str):
+        #显示模型详情
         detail = ModelManager.get_model_detail(model_path)
         lines = []
         lines.append(f"{self._i18n.t('model.path')}: {detail['path']}")
@@ -360,7 +349,6 @@ class ModelPage(QWidget):
         self.model_selected.emit(model_path)
 
     def _on_delete_model(self, model_path: str):
-        """Delete model"""
         reply = QMessageBox.question(
             self, self._i18n.t("common.confirm"),
             self._i18n.t("model.delete_confirm"),
@@ -374,12 +362,12 @@ class ModelPage(QWidget):
                 self._detail_text.clear()
 
     def _on_load_model(self, model_path: str):
-        """Load model — persist selection to config"""
+        #加载模型，保存选择到配置
         self._config.set("last_state.selected_model", model_path)
         self.model_selected.emit(model_path)
 
     def _refresh_loras(self):
-        """Refresh trained LoRA adapters list"""
+        #刷新LoRA列表
         self._lora_list.clear()
         trainer = ProcessTrainer(self._config.workspace)
         loras = trainer.list_loras()
@@ -391,7 +379,6 @@ class ModelPage(QWidget):
             self._lora_list.addItem("(no trained LoRA)")
 
     def _on_delete_lora(self):
-        """Delete selected LoRA adapter"""
         item = self._lora_list.currentItem()
         if not item or item.text().startswith("("):
             return
@@ -425,7 +412,6 @@ class ModelPage(QWidget):
         self._lora_delete_btn.setText(self._i18n.t("common.delete"))
 
     def showEvent(self, event):
-        """Refresh list on page display"""
         super().showEvent(event)
         self._refresh_model_list()
         self._refresh_loras()

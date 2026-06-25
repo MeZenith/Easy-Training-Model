@@ -9,7 +9,7 @@ logger = logging.getLogger("EasyTinking")
 
 
 class I18n(QObject):
-    """国际化管理器，支持动态切换语言并通知 UI 刷新"""
+    #国际化管理器，动态切换语言并通知UI刷新
 
     language_changed = Signal()
 
@@ -28,18 +28,18 @@ class I18n(QObject):
 
     @classmethod
     def instance(cls, locale_dir: str = "") -> "I18n":
-        """获取单例实例"""
+        #单例获取
         if cls._instance is None:
             cls._instance = cls(locale_dir)
         return cls._instance
 
     @classmethod
     def reset(cls):
-        """重置单例（测试用）"""
+        #重置单例（测试用）
         cls._instance = None
 
     def _load_fallback(self):
-        """加载英文作为回退语言"""
+        #加载英文作为回退语言
         en_path = os.path.join(self._locale_dir, "en.json")
         try:
             if os.path.isfile(en_path):
@@ -49,7 +49,7 @@ class I18n(QObject):
             self._fallback = {}
 
     def detect_system_language(self) -> str:
-        """检测系统语言，返回 'zh' 或 'en'"""
+        #检测系统语言，返回zh或en
         try:
             lang = sys_locale.getdefaultlocale()[0] or ""
             if lang.startswith("zh"):
@@ -60,12 +60,7 @@ class I18n(QObject):
         return "en"
 
     def load_language(self, lang: str, force: bool = False):
-        """加载指定语言
-
-        Args:
-            lang: 语言代码如 'zh', 'en'
-            force: 强制重新加载并发射信号（即使语言相同）
-        """
+        #加载指定语言
         if not force and lang == self._current_lang and self._translations:
             return
         path = os.path.join(self._locale_dir, f"{lang}.json")
@@ -85,11 +80,7 @@ class I18n(QObject):
         return self._current_lang
 
     def t(self, key: str, **kwargs) -> str:
-        """获取翻译文本，支持格式化参数
-
-        用法:
-            i18n.t("error.dep_missing", name="torch")
-        """
+        #取翻译文本，支持格式化参数：i18n.t("error.dep_missing", name="torch")
         text = self._translations.get(key)
         if text is None:
             text = self._fallback.get(key, key)
@@ -101,7 +92,7 @@ class I18n(QObject):
         return text
 
     def available_languages(self) -> list:
-        """返回可用语言列表"""
+        #返回可用的语言列表
         langs = []
         for fname in os.listdir(self._locale_dir):
             if fname.endswith(".json"):

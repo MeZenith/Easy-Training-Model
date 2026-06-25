@@ -1,5 +1,3 @@
-"""训练逻辑"""
-
 import json
 import logging
 import os
@@ -12,75 +10,64 @@ logger = logging.getLogger("EasyTinking")
 
 
 class ProcessTrainer(QObject):
-    """QProcess-based training manager — isolates CUDA ops in subprocess
+    #训练管理器
+    #用QProcess子进程隔离CUDA，避免训练崩了拖垮主进程
+    #和train_worker.py通过stdout前缀协议通信
 
-    Communicates with train_worker.py via stdout prefix protocol.
-    Handles process lifecycle: start, stop, stdout parsing, error handling.
-
-    Args:
-        workspace: workspace root directory dictating lora/ subfolder
-
-    Signals:
-        progress(int, str): training progress percentage + description
-        finished(dict): training complete result {final_loss, elapsed_seconds, ...}
-        error(str, str): error code + detail message
-        log_message(str): log lines from subprocess
-        metric(dict): per-step metric {step, loss, lr}
-    """
-
-    progress = Signal(int, str)
-    finished = Signal(dict)
-    error = Signal(str, str)
-    log_message = Signal(str)
-    metric = Signal(dict)
+    #发出信号
+    progress = Signal(int, str)     #进度百分比 + 描述
+    finished = Signal(dict)         #训练结果
+    error = Signal(str, str)        #错误码 + 详情
+    log_message = Signal(str)       #子进程日志行
+    metric = Signal(dict)           #每步指标 {step, loss, lr}
 
     def __init__(self, workspace: str):
         super().__init__()
-        self._workspace = workspace
         self._lora_dir = os.path.join(workspace, "lora")
         os.makedirs(self._lora_dir, exist_ok=True)
-        self._process = None
-        self._config_path = ""
-        self._pending_output = ""
+        #子进程相关
+        self._proc = None
+        self._cfg = ""
+        self._buf = ""
 
     def start_training(self, config: dict):
-        """启动子进程训练"""
+        #启动子进程训练
         lora_name = config.get("lora_name", "untitled")
         output_dir = os.path.join(self._lora_dir, self._sanitize(lora_name))
         os.makedirs(output_dir, exist_ok=True)
         config["output_dir"] = output_dir
 
-        # 保存配置到临时 JSON 文件
+        #把配置写到临时json文件
         with tempfile.NamedTemporaryFile(
             mode="w", suffix=".json", delete=False, encoding="utf-8"
         ) as f:
             json.dump(config, f, ensure_ascii=False)
-            self._config_path = f.name
+            self._cfg = f.name
 
-        # 启动子进程
-        self._process = QProcess(self)
-        self._process.readyReadStandardOutput.connect(self._on_stdout)
-        self._process.finished.connect(self._on_process_finished)
-        self._process.setProcessChannelMode(QProcess.MergedChannels)
+        #创建子进程
+        self._proc = QProcess(self)
+        self._proc.readyReadStandardOutput.connect(self._on_stdout)
+        self._proc.finished.connect(self._on_done)
+        self._proc.setProcessChannelMode(QProcess.MergedChannels)
 
         worker_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)), "train_worker.py"
         )
-        self._process.start(
+        self._proc.start(
             sys.executable,
-            [worker_path, "--config", self._config_path]
+            [worker_path, "--config", self._cfg]
         )
-        logger.info(f"Training process started (PID: {self._process.processId()})")
+        logger.info(f"Training process started (PID: {self._proc.processId()})")
 
     def stop_training(self):
-        """停止训练"""
-        if self._process and self._process.state() != QProcess.NotRunning:
-            self._process.kill()
-            self._process.waitForFinished(3000)
+        #停止训练 直接kill
+        if self._proc and self._proc.state() != QProcess.NotRunning:
+            self._proc.kill()
+            self._proc.waitForFinished(3000)
             logger.info("Training process killed")
 
     def _process_line(self, line: str):
-        """解析一行子进程输出"""
+        #解析子进程输出的一行，按前缀协议分发信号
         line = line.strip()
         if not line:
             return
@@ -121,33 +108,36 @@ class ProcessTrainer(QObject):
             pass
 
     def _on_stdout(self):
-        """读取子进程输出"""
-        if not self._process:
+        #读取子进程全部标准输出
+        if not self._proc:
             return
-        data = bytes(self._process.readAllStandardOutput()).decode("utf-8", errors="replace")
-        self._pending_output += data
-        while "\n" in self._pending_output:
-            line, self._pending_output = self._pending_output.split("\n", 1)
+        data = bytes(self._proc.readAllStandardOutput()).decode("utf-8", errors="replace")
+        self._buf += data
+        #按行切分处理
+        while "\n" in self._buf:
+            line, self._buf = self._buf.split("\n", 1)
             self._process_line(line)
 
-    def _on_process_finished(self, exit_code: int, exit_status: QProcess.ExitStatus):
-        """子进程退出处理"""
+    def _on_done(self, exit_code: int, exit_status: QProcess.ExitStatus):
+        #子进程退出，把缓冲里的残留数据读完
         self._on_stdout()
-        while self._pending_output.strip():
-            self._process_line(self._pending_output.strip())
-            self._pending_output = ""
+        while self._buf.strip():
+            self._process_line(self._buf.strip())
+            self._buf = ""
 
+        #坑：QProcess崩溃时stdout可能没读完
         if exit_status == QProcess.CrashExit:
             self.error.emit("ERR_CRASH", f"Training process crashed (exit code {exit_code})")
 
-        if self._config_path and os.path.isfile(self._config_path):
+        #清理临时配置
+        if self._cfg and os.path.isfile(self._cfg):
             try:
-                os.unlink(self._config_path)
+                os.unlink(self._cfg)
             except OSError as e:
-                logger.warning(f"Failed to clean up temp config {self._config_path}: {e}")
+                logger.warning(f"Failed to clean up temp config {self._cfg}: {e}")
 
     def list_loras(self) -> list:
-        """列出已训练的 LoRA"""
+        #列出已训练的lora列表
         loras = []
         if not os.path.isdir(self._lora_dir):
             return loras
@@ -170,17 +160,15 @@ class ProcessTrainer(QObject):
 
     @staticmethod
     def _sanitize(name: str) -> str:
+        #清理名称 只保留字母数字下划线和点横线
         import re
         name = name.strip()
         return re.sub(r'[^\w\-.]', '_', name) or "untitled"
 
 
 def list_loras_for_combo(workspace: str) -> list:
-    """列出已训练 LoRA 适配器，返回适合 QComboBox 填充的列表
-
-    Returns:
-        [{"display": "lora_name -> base_model", "lora_path": ..., "model_path": ...}]
-    """
+    #获取lora列表 给下拉框用
+    #返回 [{display: "lora名 -> 模型名", lora_path, model_path}]
     trainer = ProcessTrainer(workspace)
     items = []
     for lora in trainer.list_loras():

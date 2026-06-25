@@ -1,16 +1,11 @@
-"""训练服务 — LoRA 列表查询、配置组装等纯业务逻辑"""
-
 import os
 
 from core.trainer import ProcessTrainer
 
 
 def list_loras_for_combo(workspace: str) -> list:
-    """列出已训练 LoRA 适配器，返回适合 QComboBox 填充的列表
-
-    Returns:
-        [{"display": "lora_name -> base_model", "lora_path": ..., "model_path": ...}]
-    """
+    #列出已训练LoRA，给下拉框用
+    #返回: [{display: "lora名 -> 模型名", lora_path, model_path}]
     trainer = ProcessTrainer(workspace)
     items = []
     for lora in trainer.list_loras():

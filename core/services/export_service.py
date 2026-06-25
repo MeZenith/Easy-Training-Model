@@ -1,10 +1,8 @@
-"""导出服务 — GGUF 查找、格式检测等纯业务逻辑"""
-
 import os
 
 
 def find_gguf(directory: str) -> str:
-    """递归查找 GGUF 文件，返回第一个匹配的路径"""
+    #递归找GGUF文件，返回第一个找到的路径
     for root, dirs, files in os.walk(directory):
         for f in files:
             if f.endswith(".gguf"):
@@ -13,7 +11,7 @@ def find_gguf(directory: str) -> str:
 
 
 def find_safetensors_dir(directory: str) -> str:
-    """查找包含 config.json + safetensors 的 HuggingFace 格式目录"""
+    #找包含config.json和safetensors的HF格式目录
     if os.path.isfile(os.path.join(directory, "config.json")):
         for f in os.listdir(directory):
             if f.endswith(".safetensors"):
@@ -28,7 +26,7 @@ def find_safetensors_dir(directory: str) -> str:
 
 
 def detect_format(path: str) -> str:
-    """检测导出目录的模型格式"""
+    #检测导出目录的模型格式
     if os.path.isfile(os.path.join(path, "model-F16.gguf")):
         return "GGUF F16"
     if os.path.isfile(os.path.join(path, "model-Q4_K_M.gguf")):

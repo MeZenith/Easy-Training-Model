@@ -1,5 +1,3 @@
-"""Test / Chat page - Full implementation"""
-
 import html
 
 from PySide6.QtCore import Qt
@@ -33,6 +31,8 @@ PRESET_QUESTION_KEYS = [
 
 
 class TestPage(QWidget):
+    #推理测试页
+
     def __init__(self, config, i18n, parent=None):
         super().__init__(parent)
         self._config = config
@@ -57,12 +57,12 @@ class TestPage(QWidget):
         splitter = QSplitter(Qt.Horizontal)
         layout.addWidget(splitter, 1)
 
-        # ===== Left: Chat area =====
+        #左侧：对话区
         chat_widget = QWidget()
         chat_layout = QVBoxLayout(chat_widget)
         chat_layout.setContentsMargins(0, 0, 8, 0)
 
-        # Model selection
+        #模型选择行
         model_row = QHBoxLayout()
         self._lora_combo = QComboBox()
         model_row.addWidget(QLabel(self._i18n.t("export.lora_adapter") + ":"), 0)
@@ -72,12 +72,12 @@ class TestPage(QWidget):
         model_row.addWidget(self._load_btn)
         chat_layout.addLayout(model_row)
 
-        # Chat display
+        #对话显示
         self._chat_display = QTextEdit()
         self._chat_display.setReadOnly(True)
         chat_layout.addWidget(self._chat_display, 1)
 
-        # Input row
+        #输入行
         input_row = QHBoxLayout()
         self._input_edit = QLineEdit()
         self._input_edit.setPlaceholderText("Type a message...")
@@ -90,7 +90,7 @@ class TestPage(QWidget):
         input_row.addWidget(self._send_btn)
         chat_layout.addLayout(input_row)
 
-        # Preset question buttons
+        #预设问题按钮
         preset_row = QHBoxLayout()
         self._preset_row = preset_row
         self._preset_btns = []
@@ -103,7 +103,7 @@ class TestPage(QWidget):
             self._preset_btns.append(btn)
         chat_layout.addLayout(preset_row)
 
-        # Action buttons
+        #操作按钮
         btn_row = QHBoxLayout()
         self._clear_btn = QPushButton()
         self._save_btn = QPushButton()
@@ -114,12 +114,12 @@ class TestPage(QWidget):
 
         splitter.addWidget(chat_widget)
 
-        # ===== Right: Parameters and performance =====
+        #右侧：参数和性能
         right_widget = QWidget()
         right_layout = QVBoxLayout(right_widget)
         right_layout.setContentsMargins(8, 0, 0, 0)
 
-        # Generation parameters
+        #生成参数
         params_group = QGroupBox()
         params_form = QFormLayout(params_group)
 
@@ -178,7 +178,7 @@ class TestPage(QWidget):
         right_layout.addWidget(params_group)
         self._params_group = params_group
 
-        # Performance panel
+        #性能面板
         perf_group = QGroupBox()
         perf_layout = QVBoxLayout(perf_group)
         self._perf_text = QLabel()
@@ -197,7 +197,7 @@ class TestPage(QWidget):
         splitter.addWidget(right_widget)
         splitter.setSizes([500, 250])
 
-        # Slider connections
+        #滑块事件
         self._temp_slider.valueChanged.connect(self._update_temp_display)
         self._update_temp_display(self._temp_slider.value())
         self._topk_slider.valueChanged.connect(
@@ -216,7 +216,7 @@ class TestPage(QWidget):
         self._load_btn.clicked.connect(self._on_load_model)
 
     def _load_loras(self):
-        """Load LoRA adapter list"""
+        #加载LoRA适配器列表
         self._lora_combo.clear()
         loras = list_loras_for_combo(self._config.workspace)
         for item in loras:
@@ -226,7 +226,7 @@ class TestPage(QWidget):
             )
 
     def _on_load_model(self):
-        """Load model via subprocess — safe CUDA isolation"""
+        #通过子进程加载模型
         data = self._lora_combo.currentData() or {}
         model_path = data.get("model_path", "")
         lora_path = data.get("lora_path", "")
@@ -252,7 +252,7 @@ class TestPage(QWidget):
         self._inferencer.start(model_path, lora_path)
 
     def _on_send(self):
-        """Send message / stop generation"""
+        #发送消息
         text = self._input_edit.text().strip()
         if not text or not self._model_loaded:
             return
@@ -261,7 +261,6 @@ class TestPage(QWidget):
         self._input_edit.setEnabled(False)
         self._stream_tokens = 0
 
-        # Display user message
         self._chat_display.append(
             f"<div style='text-align:right; color:#8b5cf6; margin:8px 0;'>"
             f"<b>{self._i18n.t('test.you')}</b> {text}</div>"
@@ -269,10 +268,8 @@ class TestPage(QWidget):
         self._messages.append({"role": "user", "content": text})
         self._input_edit.clear()
 
-        # Display assistant label
         self._chat_display.append(f"<b>{self._i18n.t('test.assistant')}</b> ")
 
-        # Build generation params
         try:
             max_tokens = int(self._max_tokens_edit.text())
         except ValueError:
@@ -290,6 +287,7 @@ class TestPage(QWidget):
         self._inferencer.generate(self._messages.copy(), params)
 
     def _update_temp_display(self, v: int):
+        #滑块调温度时更新显示
         t = v / 100
         self._temp_label.setText(f"{t:.2f}")
         if t <= 0.2:
@@ -305,12 +303,10 @@ class TestPage(QWidget):
         self._temp_desc.setText(desc)
 
     def _send_preset(self, text: str):
-        """Send preset question"""
         self._input_edit.setText(text)
         self._on_send()
 
     def _on_infer_loaded(self):
-        """Model loaded in subprocess"""
         self._model_loaded = True
         self._load_btn.setEnabled(True)
         self._load_btn.setText(self._i18n.t("test.load"))
@@ -329,7 +325,6 @@ class TestPage(QWidget):
         self._perf_text.setText(self._i18n.t("test.streaming_format").format(self._stream_tokens))
 
     def _on_infer_result(self, result: dict):
-        """Generation complete"""
         self._send_btn.setEnabled(True)
         self._input_edit.setEnabled(True)
 
@@ -347,7 +342,7 @@ class TestPage(QWidget):
             safe = html.escape(text, quote=False).replace("\n", "<br>")
             self._chat_display.append(safe)
 
-        # Display performance data
+        #显示性能数据
         perf_lines = []
         perf_lines.append(f"--- {self._i18n.t('test.performance')} ---")
         perf_lines.append(f"{self._i18n.t('test.gen_speed_label')}:       {result.get('gen_speed', 0):.1f} tokens/s")
@@ -369,13 +364,11 @@ class TestPage(QWidget):
         self._chat_display.append(f"<i style='color:red;'>{msg}</i>")
 
     def _on_clear(self):
-        """Clear chat history"""
         self._messages.clear()
         self._chat_display.clear()
         self._perf_text.clear()
 
     def _on_save(self):
-        """Save chat to file"""
         path, _ = QFileDialog.getSaveFileName(
             self, self._i18n.t("test.save_chat"),
             "chat.txt", "Text Files (*.txt)"

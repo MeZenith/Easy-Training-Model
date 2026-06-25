@@ -1,5 +1,3 @@
-"""Training config panel — model/dataset selection, parameters, presets, pre-check"""
-
 import logging
 import os
 
@@ -33,11 +31,8 @@ logger = logging.getLogger("EasyTinking")
 
 
 class TrainConfigPanel(QWidget):
-    """Training configuration panel — model, dataset, LoRA params, presets, pre-checks
-
-    Signals:
-        start_requested: user clicked start training — caller should collect config and start
-    """
+    #训练配置面板
+    #发出信号: start_requested — 用户点了开始训练
 
     start_requested = Signal()
 
@@ -68,7 +63,7 @@ class TrainConfigPanel(QWidget):
         cl = QVBoxLayout(content)
         cl.setSpacing(16)
 
-        # Row 1: Model + Dataset + Identity
+        #第一行：模型选择 + 数据集 + 身份
         top_row = QHBoxLayout()
 
         model_group = QGroupBox()
@@ -110,7 +105,7 @@ class TrainConfigPanel(QWidget):
 
         cl.addLayout(top_row)
 
-        # Row 2: Preset + Training Params + Advanced Params
+        #第二行：预设 + 训练参数 + 高级参数
         params_row = QHBoxLayout()
 
         preset_group = QGroupBox()
@@ -207,7 +202,7 @@ class TrainConfigPanel(QWidget):
 
         cl.addLayout(params_row)
 
-        # Row 3: Pre-check + GPU
+        #第三行：预检查 + GPU监控
         check_row = QHBoxLayout()
 
         check_group = QGroupBox()
@@ -234,7 +229,7 @@ class TrainConfigPanel(QWidget):
 
         cl.addLayout(check_row)
 
-        # Start training button
+        #开始训练按钮
         self._start_btn = QPushButton()
         self._start_btn.setObjectName("primaryBtn")
         self._start_btn.setMinimumHeight(44)
@@ -253,10 +248,8 @@ class TrainConfigPanel(QWidget):
         self._dataset_list.itemChanged.connect(lambda: self._update_data_label())
         self._preset_combo.currentIndexChanged.connect(self._on_preset_changed)
 
-    # ---- Public API ----
-
     def get_train_config(self) -> dict:
-        """Build training configuration dictionary from UI values"""
+        #从UI控件收集训练配置
         return {
             "model_path": self._model_combo.currentData() or "",
             "data": [],
@@ -282,7 +275,7 @@ class TrainConfigPanel(QWidget):
         }
 
     def get_checked_datasets(self) -> list:
-        """Get checked datasets with identity data appended"""
+        #获取勾选的数据集，加上身份数据
         all_data = []
         dataset_names = []
         for i in range(self._dataset_list.count()):
@@ -306,7 +299,7 @@ class TrainConfigPanel(QWidget):
         return all_data, dataset_names
 
     def load_models(self):
-        """Refresh model combo from disk"""
+        #刷新模型下拉框
         self._model_combo.clear()
         download_dir = self._config.get("download_dir", "")
         if not download_dir:
@@ -317,7 +310,7 @@ class TrainConfigPanel(QWidget):
                 self._model_combo.addItem(f"{m['name']} ({m['params']})", m["path"])
 
     def load_datasets(self):
-        """Refresh dataset list"""
+        #刷新数据集列表
         self._dataset_list.clear()
         data_dir = os.path.join(self._config.workspace, "data")
         self._data_manager = DataManager(data_dir)
@@ -332,7 +325,7 @@ class TrainConfigPanel(QWidget):
         self._update_data_label()
 
     def restore_last_config(self):
-        """Restore last training config from saved state"""
+        #恢复上次的训练配置
         last = self._config.get("last_train")
         if not last:
             return
@@ -355,10 +348,8 @@ class TrainConfigPanel(QWidget):
             self._max_seq_combo.setCurrentText(str(last["max_seq_length"]))
 
     def run_pre_check(self) -> bool:
-        """Run all pre-flight checks, return True if all pass"""
+        #执行预检查，返回是否全部通过
         return self._run_pre_check()
-
-    # ---- Internal helpers ----
 
     def _update_data_label(self):
         total = 0
@@ -407,6 +398,7 @@ class TrainConfigPanel(QWidget):
         self._est_vram_label.setText(vram_estimates.get(preset, "-"))
 
     def _on_edit_identity(self):
+        #编辑模型身份信息
         dlg = QDialog(self)
         dlg.setWindowTitle(self._i18n.t("train.identity"))
         fl = QFormLayout(dlg)
@@ -433,6 +425,7 @@ class TrainConfigPanel(QWidget):
         self._identity_btn.setText(name or self._i18n.t("train.identity"))
 
     def _run_pre_check(self) -> bool:
+        #逐一检查：模型、数据、显存、磁盘
         all_pass = True
         model_path = self._model_combo.currentData()
         if model_path:
@@ -483,7 +476,7 @@ class TrainConfigPanel(QWidget):
         return all_pass
 
     def refresh_texts(self):
-        """Update all UI text for language switch"""
+        #切换语言时刷新所有文本
         self._title_label.setText(self._i18n.t("nav.train"))
         self._model_group.setTitle(self._i18n.t("nav.model"))
         self._data_group.setTitle(self._i18n.t("train.datasets_used"))

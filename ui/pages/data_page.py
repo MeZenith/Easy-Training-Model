@@ -1,5 +1,3 @@
-"""Data Management page - Full implementation"""
-
 import os
 
 from PySide6.QtCore import Qt, Signal
@@ -28,7 +26,7 @@ from ui.components.data_table import DataTable
 
 
 class CreateDatasetDialog(QDialog):
-    """Create dataset dialog"""
+    #创建数据集的弹窗
 
     def __init__(self, i18n, parent=None):
         super().__init__(parent)
@@ -58,7 +56,7 @@ class CreateDatasetDialog(QDialog):
 
 
 class IdentityDialog(QDialog):
-    """Model identity recognition data generation dialog"""
+    #模型身份数据生成弹窗
 
     def __init__(self, i18n, parent=None):
         super().__init__(parent)
@@ -95,7 +93,7 @@ class IdentityDialog(QDialog):
         self._generated_data = []
 
     def _generate_preview(self):
-        """Generate identity data preview"""
+        #生成身份数据的预览
         from core.data_manager import DataManager
         self._generated_data = DataManager.generate_identity_data(
             name=self._name_edit.text().strip() or "AI",
@@ -116,6 +114,8 @@ class IdentityDialog(QDialog):
 
 
 class DataPage(QWidget):
+    #数据管理页
+
     datasets_changed = Signal()
 
     def __init__(self, config, i18n, parent=None):
@@ -140,7 +140,7 @@ class DataPage(QWidget):
         splitter = QSplitter(Qt.Horizontal)
         layout.addWidget(splitter, 1)
 
-        # Left: Dataset list
+        #左侧：数据集列表
         left = QWidget()
         left_layout = QVBoxLayout(left)
         left_layout.setContentsMargins(0, 0, 0, 0)
@@ -176,13 +176,12 @@ class DataPage(QWidget):
 
         splitter.addWidget(left)
 
-        # Right: Data table
+        #右侧：数据表格
         right = QWidget()
         right_layout = QVBoxLayout(right)
         right_layout.setContentsMargins(8, 0, 0, 0)
         right_layout.setSpacing(8)
 
-        # Dataset info
         info_row = QHBoxLayout()
         self._ds_name_label = QLabel()
         self._ds_name_label.setStyleSheet("font-weight: bold;")
@@ -197,18 +196,18 @@ class DataPage(QWidget):
         info_row.addWidget(self._validate_btn)
         right_layout.addLayout(info_row)
 
-        # Search
+        #搜索框
         search_row = QHBoxLayout()
         self._search_edit = QLineEdit()
         self._search_edit.setPlaceholderText(self._i18n.t("common.search"))
         search_row.addWidget(self._search_edit, 1)
         right_layout.addLayout(search_row)
 
-        # Data table
+        #数据表格
         self._data_table = DataTable(parent=self, i18n=self._i18n)
         right_layout.addWidget(self._data_table, 1)
 
-        # Table operations
+        #表格操作按钮
         table_btn_row = QHBoxLayout()
         self._add_row_btn = QPushButton("+")
         self._add_row_btn.setMaximumWidth(40)
@@ -222,14 +221,14 @@ class DataPage(QWidget):
         table_btn_row.addWidget(self._save_btn)
         right_layout.addLayout(table_btn_row)
 
-        # Validation result
+        #验证结果
         self._validate_label = QLabel()
         self._validate_label.setObjectName("label-secondary")
         self._validate_label.setWordWrap(True)
         self._validate_label.setStyleSheet("font-size: 12px;")
         right_layout.addWidget(self._validate_label)
 
-        # Empty state
+        #空状态提示
         self._empty_label = QLabel()
         self._empty_label.setObjectName("label-muted")
         self._empty_label.setAlignment(Qt.AlignCenter)
@@ -259,7 +258,7 @@ class DataPage(QWidget):
             self._manager = DataManager(data_dir)
 
     def _refresh_dataset_list(self):
-        """Refresh dataset list"""
+        #刷新左侧数据集列表
         self._init_manager()
         self._dataset_list.clear()
         for name in self._manager.list_names():
@@ -269,7 +268,7 @@ class DataPage(QWidget):
             self._dataset_list.addItem(item)
 
     def _on_select_dataset(self, row: int):
-        """Select a dataset"""
+        #选中某个数据集
         item = self._dataset_list.item(row)
         if not item:
             self._current_dataset = None
@@ -289,7 +288,7 @@ class DataPage(QWidget):
             self._empty_label.setVisible(False)
 
     def _on_create(self):
-        """Create a new dataset"""
+        #创建新数据集
         dlg = CreateDatasetDialog(self._i18n, self)
         if dlg.exec() == QDialog.Accepted and dlg.dataset_name:
             self._init_manager()
@@ -300,7 +299,7 @@ class DataPage(QWidget):
                 QMessageBox.warning(self, self._i18n.t("common.warning"), str(e))
 
     def _on_import(self):
-        """Import data from file"""
+        #从文件导入数据
         file_path, _ = QFileDialog.getOpenFileName(
             self, self._i18n.t("data.import"),
             "", "Data Files (*.jsonl *.json *.csv);;All Files (*)"
@@ -310,7 +309,6 @@ class DataPage(QWidget):
 
         self._init_manager()
 
-        # Input target dataset name
         name, ok = QInputDialog.getText(
             self, self._i18n.t("data.import"),
             self._i18n.t("data.dataset_name") + ":"
@@ -343,7 +341,7 @@ class DataPage(QWidget):
             QMessageBox.critical(self, self._i18n.t("common.error"), msg)
 
     def _on_delete(self):
-        """Delete selected datasets"""
+        #删除选中的数据集
         items = self._dataset_list.selectedItems()
         if not items:
             return
@@ -364,7 +362,7 @@ class DataPage(QWidget):
             self._ds_stats_label.setText("")
 
     def _on_identity(self):
-        """Generate identity recognition data"""
+        #生成身份认知数据
         dlg = IdentityDialog(self._i18n, self)
         if dlg.exec() == QDialog.Accepted and dlg.identity_data:
             self._init_manager()
@@ -386,16 +384,14 @@ class DataPage(QWidget):
                         self._refresh_dataset_list()
 
     def _on_add_row(self):
-        """Add empty row"""
         if self._current_dataset:
             self._data_table.add_row()
 
     def _on_del_row(self):
-        """Delete selected rows"""
         self._data_table.delete_selected()
 
     def _on_save(self):
-        """Save data to disk"""
+        #保存到磁盘
         if not self._current_dataset:
             return
         self._current_dataset.data = self._data_table.get_data()
@@ -406,10 +402,9 @@ class DataPage(QWidget):
         )
 
     def _on_validate(self):
-        """Validate current dataset"""
+        #验证当前数据集
         if not self._current_dataset:
             return
-        # Save current edits first
         self._current_dataset.data = self._data_table.get_data()
         issues = self._current_dataset.validate(
             max_length=self._config.get("default_train_params.max_seq_length", 2048)
@@ -429,7 +424,7 @@ class DataPage(QWidget):
             self._validate_label.setStyleSheet("color: #ef4444; font-size: 12px;")
 
     def _on_search(self, text: str):
-        """Search / filter data"""
+        #搜索过滤
         if not self._current_dataset:
             return
         keyword = text.strip().lower()
@@ -461,7 +456,7 @@ class DataPage(QWidget):
         self._refresh_dataset_list()
 
     def get_selected_datasets(self) -> list:
-        """Get multi-selected dataset names (for train page)"""
+        #获取多选的数据集名字（给训练页用）
         self._init_manager()
         names = []
         for item in self._dataset_list.selectedItems():

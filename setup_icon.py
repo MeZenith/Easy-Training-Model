@@ -1,13 +1,3 @@
-"""应用图标设置工具 —— 任务栏/标题栏/Alt+Tab/托盘 全覆盖
-
-调用方式:
-    from setup_icon import setup_app_icon, set_window_icon
-    setup_app_icon()          # QApplication 创建之前
-    app = QApplication(sys.argv)
-    set_window_icon(app)      # QApplication 创建之后
-    set_window_icon(window)   # 窗口也设一份
-"""
-
 import logging
 import os
 import sys
@@ -22,6 +12,7 @@ ICON_FILE = "icon.ico"
 
 
 def get_resource_path(relative_path: str) -> str:
+    #获取资源文件的绝对路径，兼容PyInstaller打包
     if getattr(sys, "frozen", False):
         base_path = sys._MEIPASS
     else:
@@ -30,6 +21,7 @@ def get_resource_path(relative_path: str) -> str:
 
 
 def find_icon_file() -> str:
+    #找图标文件，支持ico和png
     candidates = [
         f"res/{ICON_FILE}",
         f"resources/{ICON_FILE}",
@@ -45,6 +37,7 @@ def find_icon_file() -> str:
 
 
 def set_appusermodelid():
+    #设置Windows任务栏应用ID（Win下图标不显示时用的）
     if sys.platform != "win32":
         return
     app_id = f"{COMPANY}.{APP_NAME}.{VERSION}"
@@ -59,12 +52,14 @@ _icon_path = None
 
 
 def setup_app_icon():
+    #QApplication创建之前调用
     global _icon_path
     _icon_path = find_icon_file()
     set_appusermodelid()
 
 
 def set_window_icon(app_or_window):
+    #给窗口设图标
     from PySide6.QtGui import QIcon
     global _icon_path
     if _icon_path is None:

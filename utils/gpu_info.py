@@ -1,5 +1,3 @@
-"""GPU 信息获取工具"""
-
 import logging
 import os
 import subprocess
@@ -8,13 +6,7 @@ logger = logging.getLogger("EasyTinking")
 
 
 def get_gpu_info() -> list:
-    """获取 GPU 信息列表
-
-    返回格式:
-        [{"index": 0, "name": "...", "vram_total_mb": 8192, "vram_used_mb": 2048,
-          "vram_free_mb": 6148, "temperature_c": 45, "driver_version": "..."}]
-    如果无 GPU 或 nvidia-smi 不可用则返回空列表
-    """
+    #用nvidia-smi获取GPU信息，返回 [{index, name, vram_total_mb, vram_used_mb, vram_free_mb, temperature_c, driver_version}]
     gpus = []
     try:
         result = subprocess.run(
@@ -45,7 +37,7 @@ def get_gpu_info() -> list:
 
 
 def get_cuda_version() -> str:
-    """获取 CUDA 版本"""
+    #查CUDA版本
     try:
         result = subprocess.run(
             ["nvidia-smi", "--query-gpu=cuda_version", "--format=csv,noheader"],

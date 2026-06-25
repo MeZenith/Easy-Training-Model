@@ -1,5 +1,3 @@
-"""Training Center — orchestrates config panel and monitor panel via QStackedWidget"""
-
 import logging
 import os
 
@@ -19,12 +17,7 @@ logger = logging.getLogger("EasyTinking")
 
 
 class TrainPage(QWidget):
-    """Training page — dual-panel layout (config + monitor) with QStackedWidget
-
-    Signals:
-        training_started: emitted when training begins
-        training_finished: emitted with result dict when training completes
-    """
+    #训练页 — 配置面板和监控面板双页切换
 
     training_started = Signal()
     training_finished = Signal(dict)
@@ -66,16 +59,15 @@ class TrainPage(QWidget):
         self._trainer.log_message.connect(lambda msg: logger.info(msg))
         self._trainer.metric.connect(self._on_metric)
 
-    # ---- Training lifecycle ----
-
     def _on_start(self):
+        #开始训练
         config = self._config_panel.get_train_config()
         if not config["model_path"]:
             QMessageBox.warning(self, self._i18n.t("common.warning"),
                                 self._i18n.t("error.no_model"))
             return
 
-        # Save current config for next session restore
+        #保存配置给下次恢复
         self._config.set("last_train.model_path", config["model_path"])
         self._config.set("last_train.lora_rank", config["lora_rank"])
         self._config.set("last_train.lora_alpha", config["lora_alpha"])
@@ -130,8 +122,6 @@ class TrainPage(QWidget):
     def _on_back(self):
         self._stack.setCurrentIndex(0)
 
-    # ---- Trainer callbacks ----
-
     def _on_metric(self, data: dict):
         self._monitor_panel.add_metric(
             data["step"], data["loss"], data.get("lr", 0)
@@ -150,8 +140,6 @@ class TrainPage(QWidget):
         if text == key:
             text = detail
         QMessageBox.critical(self, self._i18n.t("common.error"), text)
-
-    # ---- Refresh ----
 
     def _refresh_texts(self):
         self._config_panel.refresh_texts()

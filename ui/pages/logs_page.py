@@ -1,5 +1,3 @@
-"""Runtime logs page - Full implementation"""
-
 import logging
 import os
 
@@ -19,7 +17,7 @@ from PySide6.QtWidgets import (
 
 
 class LogHandler(QObject):
-    """Thread-safe log handler, emits logs to main thread via Signal"""
+    #线程安全的日志处理器，通过Signal把日志发到主线程
 
     entry_received = Signal(str, int)
 
@@ -28,7 +26,7 @@ class LogHandler(QObject):
         self._handler = logging.Handler()
 
     def setup(self, fmt: str = "", datefmt: str = "%H:%M:%S"):
-        """Redirect Python logging output to Signal"""
+        #把Python logging输出转发到Signal
         self._handler = logging.Handler()
         self._handler.emit = self._emit_record
         if fmt:
@@ -50,6 +48,8 @@ class LogHandler(QObject):
 
 
 class LogsPage(QWidget):
+    #日志查看页
+
     def __init__(self, config, i18n, parent=None):
         super().__init__(parent)
         self._config = config
@@ -71,7 +71,7 @@ class LogsPage(QWidget):
         self._title_label.setStyleSheet("font-size: 22px; font-weight: bold;")
         layout.addWidget(self._title_label)
 
-        # Toolbar
+        #工具栏
         toolbar = QHBoxLayout()
 
         self._level_combo = QComboBox()
@@ -97,7 +97,7 @@ class LogsPage(QWidget):
 
         layout.addLayout(toolbar)
 
-        # Log display
+        #日志显示区
         self._log_text = QTextEdit()
         self._log_text.setReadOnly(True)
         self._log_text.setObjectName("logDisplay")
@@ -113,18 +113,15 @@ class LogsPage(QWidget):
         self._auto_scroll_btn.toggled.connect(self._on_toggle_auto_scroll)
 
     def _init_log_handler(self):
-        """Initialize log handler, thread-safe output to UI via Signal"""
         self._log_handler = LogHandler()
         self._log_handler.entry_received.connect(self._on_log_entry)
         self._log_handler.setup(
             "[%(asctime)s] %(levelname)-7s %(message)s"
         )
-
-        # Load existing logs
         self._load_existing_logs()
 
     def _load_existing_logs(self):
-        """Load existing log file content"""
+        #加载已有的日志文件
         log_dir = os.path.join(self._config.workspace, "logs")
         log_path = os.path.join(log_dir, "app.log")
         if os.path.isfile(log_path):
@@ -141,7 +138,7 @@ class LogsPage(QWidget):
 
     @staticmethod
     def _parse_level(line: str) -> int:
-        """Parse log level from log line"""
+        #从日志行里判断等级
         if "CRITICAL" in line:
             return logging.CRITICAL
         elif "ERROR" in line:
@@ -155,16 +152,15 @@ class LogsPage(QWidget):
         return logging.DEBUG
 
     def _on_log_entry(self, message: str, level: int):
-        """Receive new log entry"""
+        #收到新日志
         self._all_entries.append((message, level))
-        # Check if should display
         level_filter = self._level_combo.currentText()
         if self._should_show(message, level, level_filter, self._search_edit.text()):
             self._append_colored(message, level)
 
     def _should_show(self, message: str, level: int,
                      level_filter: str, keyword: str) -> bool:
-        """Determine if log entry should be displayed"""
+        #判断这条日志要不要显示
         level_map = {
             "ALL": logging.DEBUG,
             "DEBUG": logging.DEBUG,
@@ -180,7 +176,7 @@ class LogsPage(QWidget):
         return True
 
     def _append_colored(self, message: str, level: int):
-        """Append colored log text"""
+        #带颜色显示日志
         color_map = {
             logging.ERROR: "#ef4444",
             logging.WARNING: "#f59e0b",
@@ -198,7 +194,6 @@ class LogsPage(QWidget):
 
     @Slot()
     def _apply_filter(self):
-        """Apply level and search filters"""
         self._log_text.clear()
         level_filter = self._level_combo.currentText()
         keyword = self._search_edit.text().strip()
@@ -208,7 +203,6 @@ class LogsPage(QWidget):
                 self._append_colored(message, level)
 
     def _on_export(self):
-        """Export logs to file"""
         path, _ = QFileDialog.getSaveFileName(
             self, self._i18n.t("logs.export"),
             "easytinking.log", "Text Files (*.txt *.log)"
@@ -221,7 +215,6 @@ class LogsPage(QWidget):
                 QMessageBox.critical(self, self._i18n.t("common.error"), str(e))
 
     def _on_clear(self):
-        """Clear log display"""
         reply = QMessageBox.question(
             self, self._i18n.t("common.confirm"),
             f"{self._i18n.t('logs.clear')}?",

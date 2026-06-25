@@ -1,28 +1,10 @@
-"""推理子进程 — 加载模型后常驻，通过 stdin JSON 接收生成请求
-
-协议格式:
-    stdout 前缀输出：
-        LOG:<message>          → Inferencer.progress Signal
-        LOADED:{}              → Inferencer.loaded Signal
-        TOKEN:<text>           → Inferencer.token Signal (流式，当前未启用)
-        RESULT:<json>          → Inferencer.result Signal {text, tokens, speed, ...}
-        ERROR:<code>:<detail>  → Inferencer.error Signal
-        DONE                   → 忽略
-
-    stdin JSON 请求:
-        {"action": "generate", "messages": [...], "params": {...}}
-        {"action": "quit"}
-
-CUDA 操作全部隔离在子进程，避免 Qt 主线程崩溃。
-"""
-
 import argparse
 import json
 import os
 import sys
 import time
 
-# Force UTF-8 encoding for stdout when piped to QProcess on Windows
+# Windows下QProcess管道通信需要强制UTF-8
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 elif hasattr(sys.stdout, "buffer"):
@@ -35,10 +17,12 @@ def log(msg: str):
 
 
 def main():
+    #接收参数
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", required=True)
     args = parser.parse_args()
 
+    #读取配置
     try:
         with open(args.config, "r", encoding="utf-8") as f:
             cfg = json.load(f)
@@ -49,17 +33,20 @@ def main():
     model_path = os.path.normpath(cfg.get("model_path", ""))
     lora_path = cfg.get("lora_path", "")
 
+    #检查模型路径
     if not model_path or not os.path.isdir(model_path):
         log(f"ERROR:ERR_MODEL:Model path not found: {model_path}")
         sys.exit(1)
 
     log(f"LOG:Model: {os.path.basename(model_path)}")
 
+    #加载torch
     import torch
     log(f"LOG:CUDA: {torch.cuda.is_available()}")
     if torch.cuda.is_available():
         log(f"LOG:GPU: {torch.cuda.get_device_name(0)}")
 
+    #加载模型和分词器
     from transformers import AutoModelForCausalLM, AutoTokenizer
 
     log("LOG:Loading tokenizer...")
@@ -79,6 +66,7 @@ def main():
     used = torch.cuda.memory_allocated() / 1024**3
     log(f"LOG:Model loaded, VRAM={used:.1f}GB")
 
+    #合并LoRA（如果有的话）
     if lora_path and os.path.isdir(lora_path):
         log("LOG:Loading LoRA adapter...")
         try:
@@ -92,11 +80,13 @@ def main():
     model.eval()
     log("LOADED:{}")
 
+    #主循环 — 从stdin读请求
     for line in sys.stdin:
         line = line.strip()
         if not line:
             continue
 
+        #解析json请求
         try:
             req = json.loads(line)
         except json.JSONDecodeError:
@@ -111,6 +101,7 @@ def main():
                 messages = req.get("messages", [])
                 params = req.get("params", {})
 
+                #拼接prompt
                 prompt_parts = []
                 for msg in messages:
                     if msg["role"] == "user":
@@ -121,12 +112,14 @@ def main():
                     elif msg["role"] == "assistant":
                         prompt_parts.append(f"{msg['content']}\n")
                 prompt = "".join(prompt_parts)
+                # log(f"DEBUG: prompt_len={len(prompt)}, msgs={len(messages)}")
 
                 inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
                 prompt_len = inputs["input_ids"].shape[1]
 
                 start_time = time.time()
 
+                #模型生成
                 with torch.no_grad():
                     outputs = model.generate(
                         inputs["input_ids"],
@@ -144,6 +137,7 @@ def main():
 
                 gen_time = time.time() - start_time
 
+                #解码生成的文字
                 generated_text = ""
                 if outputs.shape[1] > prompt_len:
                     new_ids = outputs[0][prompt_len:].cpu().tolist()
@@ -152,12 +146,14 @@ def main():
                         generated_text = tokenizer.decode(new_ids, skip_special_tokens=False)
                 log(f"LOG:gen={outputs.shape[1] - prompt_len} tok, text_len={len(generated_text)}")
 
+                #截断多余的指令标记
                 for stop_marker in ["\n###", "### Instruction", "### Input", "Human:", "# Human"]:
                     idx = generated_text.find(stop_marker)
                     if idx > 0:
                         generated_text = generated_text[:idx].strip()
                         break
 
+                #统计token数
                 completion_tokens = len(tokenizer.encode(
                     generated_text, add_special_tokens=False
                 ))

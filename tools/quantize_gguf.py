@@ -1,4 +1,4 @@
-"""GGUF 量化：F16 → Q8_0 / Q4_K_M"""
+#GGUF量化工具: F16 → Q8_0 / Q4_K_M
 import os
 import sys
 
@@ -17,13 +17,13 @@ def quantize_gguf(input_path: str, output_path: str, quant_type: str = "Q8_0"):
 
     writer = GGUFWriter(output_path, arch)
 
-    # Copy metadata
+    #复制元数据
     for field in reader.fields.values():
         for i, val in enumerate(field.parts):
             vtype = field.types[i] if i < len(field.types) else field.types[0]
             writer.add_key_value(field.name, val, vtype)
 
-    # Copy tensors with quantization
+    #量化张量
     total = len(reader.tensors)
     for i, tensor in enumerate(reader.tensors):
         name = tensor.name

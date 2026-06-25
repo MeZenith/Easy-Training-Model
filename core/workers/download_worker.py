@@ -1,8 +1,3 @@
-"""模型下载 Worker — 从 HuggingFace Hub 下载模型文件
-
-继承 BaseWorker，在子线程中执行耗时下载操作，通过 Signal 报告进度。
-"""
-
 import logging
 import os
 
@@ -12,18 +7,9 @@ logger = logging.getLogger("EasyTinking")
 
 
 class DownloadWorker(BaseWorker):
-    """HuggingFace 模型下载 Worker
-
-    Args:
-        model_id: HuggingFace model ID (e.g. "Qwen/Qwen2.5-Coder-3B-Instruct")
-        download_dir: 本地下载目录
-        hf_mirror: HuggingFace 镜像 URL（可选）
-
-    信号:
-        progress: (int, str) 进度百分比和描述
-        finished: (dict) 完成结果 {"path": str, "model_id": str}
-        error: (str, str) 错误码和详情
-    """
+    #HuggingFace模型下载Worker
+    #参数: model_id, download_dir, hf_mirror
+    #发出信号: progress(进度,描述) finished(结果) error(错误码,详情)
 
     def __init__(self, model_id: str, download_dir: str, hf_mirror: str = "",
                  parent=None):
@@ -33,11 +19,6 @@ class DownloadWorker(BaseWorker):
         self._hf_mirror = hf_mirror
 
     def do_work(self) -> dict:
-        """执行下载任务
-
-        Returns:
-            dict: {"path": downloaded_path, "model_id": model_id}
-        """
         from huggingface_hub import snapshot_download
 
         model_name = self._model_id.split("/")[-1]

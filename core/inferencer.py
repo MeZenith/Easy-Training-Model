@@ -1,5 +1,3 @@
-"""推理 QProcess 管理器 — 与训练相同的子进程隔离模式"""
-
 import json
 import logging
 import os
@@ -12,78 +10,76 @@ logger = logging.getLogger("EasyTinking")
 
 
 class Inferencer(QObject):
-    """QProcess-based inference manager — isolates CUDA operations in subprocess
+    #推理管理器
+    #用QProcess子进程隔离CUDA，避免推理时主进程卡死
+    #和infer_worker.py通过stdout前缀协议 + stdin JSON通信
 
-    Communicates with infer_worker.py via stdin/stdout JSON lines.
-    Prefix-based line routing: LOG:→progress, TOKEN:→token, RESULT:→result, ERROR:→error, LOADED:{}→loaded.
-
-    Signals:
-        loaded(): subprocess finished loading model
-        progress(str): loading progress messages
-        token(str): streaming token output
-        result(dict): final generation result {text, tokens, speed, ...}
-        error(str, str): error code and detail message
-    """
-
-    loaded = Signal()
-    progress = Signal(str)
-    token = Signal(str)
-    result = Signal(dict)
-    error = Signal(str, str)
+    #发出信号
+    loaded = Signal()           #模型加载完成
+    progress = Signal(str)      #加载进度
+    token = Signal(str)         #流式输出
+    result = Signal(dict)       #生成结果 {text, tokens, speed}
+    error = Signal(str, str)    #错误码 + 详情
 
     def __init__(self):
         super().__init__()
-        self._process = None
-        self._config_path = ""
-        self._pending = ""
+        self._proc = None
+        self._cfg = ""
+        self._buf = ""
 
     def start(self, model_path: str, lora_path: str = ""):
-        if self._process and self._process.state() != QProcess.NotRunning:
-            self._process.kill()
-            self._process.waitForFinished(3000)
+        #启动推理子进程
+        if self._proc and self._proc.state() != QProcess.NotRunning:
+            self._proc.kill()
+            self._proc.waitForFinished(3000)
 
-        self._process = QProcess(self)
-        self._process.readyReadStandardOutput.connect(self._on_stdout)
-        self._process.finished.connect(self._on_finished)
-        self._process.setProcessChannelMode(QProcess.MergedChannels)
+        #创建子进程
+        self._proc = QProcess(self)
+        self._proc.readyReadStandardOutput.connect(self._on_stdout)
+        self._proc.finished.connect(self._on_done)
+        self._proc.setProcessChannelMode(QProcess.MergedChannels)
 
         env = QProcessEnvironment.systemEnvironment()
         env.insert("PYTHONIOENCODING", "utf-8")
-        self._process.setProcessEnvironment(env)
+        self._proc.setProcessEnvironment(env)
 
+        #把配置写到临时文件
         cfg = {"model_path": model_path, "lora_path": lora_path}
-        fd, self._config_path = tempfile.mkstemp(suffix=".json")
+        fd, self._cfg = tempfile.mkstemp(suffix=".json")
         with os.fdopen(fd, "w", encoding="utf-8") as f:
             json.dump(cfg, f, ensure_ascii=False)
 
         worker_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)), "infer_worker.py"
         )
-        self._process.start(
+        self._proc.start(
             sys.executable,
-            [worker_path, "--config", self._config_path]
+            [worker_path, "--config", self._cfg]
         )
-        logger.info(f"Inferencer process started (PID: {self._process.processId()})")
+        logger.info(f"Inferencer process started (PID: {self._proc.processId()})")
 
     def generate(self, messages: list, params: dict):
-        if not self._process or self._process.state() == QProcess.NotRunning:
+        #发送生成请求给子进程
+        if not self._proc or self._proc.state() == QProcess.NotRunning:
             self.error.emit("ERR_NO_MODEL", "Model not loaded")
             return
         req = {"action": "generate", "messages": messages, "params": params}
-        self._process.write((json.dumps(req, ensure_ascii=False) + "\n").encode("utf-8"))
+        self._proc.write((json.dumps(req, ensure_ascii=False) + "\n").encode("utf-8"))
 
     def quit(self):
-        if self._process and self._process.state() != QProcess.NotRunning:
+        #退出子进程
+        if self._proc and self._proc.state() != QProcess.NotRunning:
             try:
-                self._process.write(b'{"action": "quit"}\n')
-                self._process.waitForBytesWritten(1000)
-                self._process.waitForFinished(3000)
+                self._proc.write(b'{"action": "quit"}\n')
+                self._proc.waitForBytesWritten(1000)
+                self._proc.waitForFinished(3000)
             except Exception:
                 logger.warning("Failed to gracefully quit inference process")
-            if self._process.state() != QProcess.NotRunning:
-                self._process.kill()
+            if self._proc.state() != QProcess.NotRunning:
+                self._proc.kill()
 
     def _process_line(self, line: str):
+        #解析子进程输出的一行
         line = line.strip()
         if not line:
             return
@@ -114,25 +110,28 @@ class Inferencer(QObject):
             pass
 
     def _on_stdout(self):
-        if not self._process:
+        #读取子进程全部标准输出
+        if not self._proc:
             return
-        data = bytes(self._process.readAllStandardOutput()).decode("utf-8", errors="replace")
-        self._pending += data
-        while "\n" in self._pending:
-            line, self._pending = self._pending.split("\n", 1)
+        data = bytes(self._proc.readAllStandardOutput()).decode("utf-8", errors="replace")
+        self._buf += data
+        while "\n" in self._buf:
+            line, self._buf = self._buf.split("\n", 1)
             self._process_line(line)
 
-    def _on_finished(self, exit_code, exit_status):
+    def _on_done(self, exit_code, exit_status):
+        #子进程退出，清空缓冲
         self._on_stdout()
-        while self._pending.strip():
-            self._process_line(self._pending.strip())
-            self._pending = ""
+        while self._buf.strip():
+            self._process_line(self._buf.strip())
+            self._buf = ""
 
-        if self._config_path and os.path.isfile(self._config_path):
+        #清理临时配置
+        if self._cfg and os.path.isfile(self._cfg):
             try:
-                os.unlink(self._config_path)
+                os.unlink(self._cfg)
             except OSError as e:
-                logger.warning(f"Failed to clean up temp config {self._config_path}: {e}")
+                logger.warning(f"Failed to clean up temp config {self._cfg}: {e}")
 
         if exit_status == QProcess.CrashExit:
             self.error.emit("ERR_CRASH", f"Inference process crashed (exit code {exit_code})")

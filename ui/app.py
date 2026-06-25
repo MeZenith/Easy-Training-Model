@@ -1,5 +1,3 @@
-"""主窗口与导航"""
-
 import logging
 import os
 import sys
@@ -37,7 +35,7 @@ from utils.i18n import I18n
 logger = logging.getLogger("EasyTinking")
 
 
-# 导航项定义: (page_id, i18n_key)
+#导航项定义
 NAV_ITEMS = [
     ("model", "nav.model"),
     ("data", "nav.data"),
@@ -51,6 +49,8 @@ NAV_ITEMS = [
 
 
 class MainWindow(QMainWindow):
+    #主窗口
+
     def __init__(self, config: AppConfig, i18n: I18n):
         super().__init__()
         self._config = config
@@ -67,6 +67,7 @@ class MainWindow(QMainWindow):
         ThemeManager.instance().theme_changed.connect(self._on_theme_changed)
 
     def _init_window(self):
+        #初始化窗口属性
         self.setObjectName("mainWindow")
         self.setWindowTitle(self._i18n.t("app.title") + " - " + self._i18n.t("app.subtitle"))
         self.setMinimumSize(QSize(
@@ -78,20 +79,20 @@ class MainWindow(QMainWindow):
         self.resize(w, h)
         self.setWindowFlags(Qt.FramelessWindowHint)
 
-        # 图标
+        #设图标
         icon_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "res", "icon.png")
         if os.path.isfile(icon_path):
             self.setWindowIcon(QIcon(icon_path))
 
-        # Windows 11 DWM 圆角窗口
+        #Win11圆角窗口
         self._apply_round_corners()
 
     def _apply_round_corners(self):
-        """Apply Windows 11 native rounded corners via DWM API"""
+        #调Windows DWM API让Win11窗口变圆角
         try:
             import ctypes
-            DWMWA_WINDOW_CORNER_PREFERENCE = 33  # noqa: N806
-            DWMWCP_ROUND = 2  # noqa: N806
+            DWMWA_WINDOW_CORNER_PREFERENCE = 33
+            DWMWCP_ROUND = 2
             hwnd = int(self.winId())
             ctypes.windll.dwmapi.DwmSetWindowAttribute(
                 hwnd,
@@ -104,13 +105,14 @@ class MainWindow(QMainWindow):
             pass
 
     def _init_ui(self):
+        #构建整个窗口UI
         central = QWidget()
         self.setCentralWidget(central)
         main_layout = QVBoxLayout(central)
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
 
-        # ===== 自定义标题栏 =====
+        #自定义标题栏
         title_bar = QWidget()
         title_bar.setObjectName("titleBar")
         title_bar.setFixedHeight(self._config.get("ui_constants.title_bar_height", 40))
@@ -129,6 +131,7 @@ class MainWindow(QMainWindow):
         tb_layout.addWidget(self._title_text)
         tb_layout.addStretch()
 
+        #最小化/最大化/关闭按钮
         for btn_info in [("minBtn", "__"), ("maxBtn", "[]"), ("closeBtn", "X")]:
             btn = QPushButton(btn_info[1])
             btn.setObjectName(btn_info[0])
@@ -139,12 +142,12 @@ class MainWindow(QMainWindow):
         self._title_bar = title_bar
         main_layout.addWidget(title_bar)
 
-        # ===== 主内容 =====
+        #主内容区域
         content_row = QHBoxLayout()
         content_row.setContentsMargins(0, 0, 0, 0)
         content_row.setSpacing(0)
 
-        # 侧边栏
+        #侧边栏
         self._sidebar = QWidget()
         self._sidebar.setObjectName("sidebar")
         self._sidebar.setFixedWidth(200)
@@ -152,7 +155,7 @@ class MainWindow(QMainWindow):
         sidebar_layout.setContentsMargins(0, 8, 0, 8)
         sidebar_layout.setSpacing(2)
 
-        # 导航列表
+        #导航列表
         self._nav_list = QListWidget()
         self._nav_list.setObjectName("sidebarNav")
         self._nav_list.setSpacing(0)
@@ -170,7 +173,7 @@ class MainWindow(QMainWindow):
 
         sidebar_layout.addStretch()
 
-        # 折叠按钮 + 版权
+        #折叠按钮
         self._collapse_btn = QPushButton("<>")
         self._collapse_btn.setObjectName("sidebarCollapse")
         self._collapse_btn.setCursor(Qt.PointingHandCursor)
@@ -184,7 +187,7 @@ class MainWindow(QMainWindow):
 
         content_row.addWidget(self._sidebar)
 
-        # 页面堆栈
+        #页面栈
         self._stack = QStackedWidget()
         self._pages = {
             "model": ModelPage(self._config, self._i18n),
@@ -200,7 +203,7 @@ class MainWindow(QMainWindow):
         content_row.addWidget(self._stack, 1)
         main_layout.addLayout(content_row, 1)
 
-        # 状态栏
+        #状态栏（底部）
         self._statusbar = QStatusBar()
         self._statusbar.setObjectName("statusbar")
         self.setStatusBar(self._statusbar)
@@ -221,8 +224,8 @@ class MainWindow(QMainWindow):
         self._switch_page(last_page)
         self._setup_shortcuts()
 
-    # ===== 标题栏按钮 =====
     def _on_title_btn(self, action):
+        #标题栏按钮事件
         if action == "closeBtn":
             self.close()
         elif action == "maxBtn":
@@ -233,6 +236,7 @@ class MainWindow(QMainWindow):
         elif action == "minBtn":
             self.showMinimized()
 
+    #窗口拖拽（无边框窗口用手拖标题栏移动）
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton and event.position().y() < 40:
             self._drag_pos = event.globalPosition().toPoint()
@@ -251,6 +255,7 @@ class MainWindow(QMainWindow):
         self._drag_pos = None
         super().mouseReleaseEvent(event)
 
+    #双击标题栏最大化/还原
     def mouseDoubleClickEvent(self, event):
         if event.position().y() < 40:
             if self.isMaximized():
@@ -265,6 +270,7 @@ class MainWindow(QMainWindow):
             self._switch_page(item.data(Qt.UserRole))
 
     def _switch_page(self, page_id: str):
+        #切换页面
         if page_id in self._pages:
             self._stack.setCurrentWidget(self._pages[page_id])
             for i in range(self._nav_list.count()):
@@ -277,6 +283,7 @@ class MainWindow(QMainWindow):
             self._config.set("last_state.current_page", page_id)
 
     def _toggle_sidebar(self):
+        #折叠/展开侧边栏
         self._sidebar_expanded = not self._sidebar_expanded
         w_expanded = self._config.get("ui_constants.sidebar_width_expanded", 200)
         w_collapsed = self._config.get("ui_constants.sidebar_width_collapsed", 56)
@@ -300,6 +307,7 @@ class MainWindow(QMainWindow):
                     item.setText("")
 
     def _update_statusbar(self):
+        #刷新状态栏GPU信息
         try:
             gpus = get_gpu_info()
             if gpus:
@@ -314,6 +322,7 @@ class MainWindow(QMainWindow):
         self._gpu_label.setText(text)
 
     def _on_language_changed(self):
+        #语言切换后刷新导航文字
         for i in range(self._nav_list.count()):
             item = self._nav_list.item(i)
             if item:
@@ -323,14 +332,16 @@ class MainWindow(QMainWindow):
                         item.setText(f"  {self._i18n.t(ik)}")
                         break
 
-    @staticmethod
-    def _on_theme_changed(theme: str):
+    def _on_theme_changed(self, theme: str):
+        #主题切换回调（ThemeManager已处理样式，这里预留后续操作）
         pass
 
     def _apply_saved_state(self):
+        #恢复上次窗口状态（预留）
         pass
 
     def _setup_shortcuts(self):
+        #设置键盘快捷键 Ctrl+数字切换页面
         shortcuts = {
             "Ctrl+1": "model", "Ctrl+2": "data", "Ctrl+3": "train",
             "Ctrl+4": "export", "Ctrl+5": "test", "Ctrl+6": "settings", "Ctrl+7": "logs",
@@ -340,6 +351,7 @@ class MainWindow(QMainWindow):
             sc.activated.connect(lambda pid=page_id: self._switch_page(pid))
 
     def closeEvent(self, event):
+        #关闭前保存窗口状态
         geo = self.geometry()
         self._config.set("window.width", geo.width())
         self._config.set("window.height", geo.height())
@@ -349,7 +361,7 @@ class MainWindow(QMainWindow):
 
 
 def global_exception_handler(exc_type, exc_value, exc_tb):
-    """全局未捕获异常处理，显示友好提示"""
+    #全局未捕获异常处理
     logger.critical("Unhandled exception", exc_info=(exc_type, exc_value, exc_tb))
     msg = friendly_error_message(exc_value)
     try:

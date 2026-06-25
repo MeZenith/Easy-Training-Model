@@ -1,11 +1,9 @@
-"""模型卡片组件"""
-
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QPushButton, QVBoxLayout
 
 
 class ModelCard(QFrame):
-    """模型信息卡片"""
+    #模型信息卡片
 
     clicked = Signal(str)
     delete_requested = Signal(str)
@@ -24,6 +22,7 @@ class ModelCard(QFrame):
         layout.setContentsMargins(12, 6, 12, 6)
         layout.setSpacing(2)
 
+        #第一行：名字 + 状态
         top_row = QHBoxLayout()
         name_label = QLabel(name)
         name_label.setStyleSheet("font-weight: bold; font-size: 13px;")
@@ -42,6 +41,7 @@ class ModelCard(QFrame):
 
         layout.addLayout(top_row)
 
+        #第二行：参数+大小 + 操作按钮
         bottom_row = QHBoxLayout()
         detail_label = QLabel(f"{params}  ·  {size}")
         detail_label.setObjectName("label-secondary")
@@ -73,6 +73,7 @@ class ModelCard(QFrame):
         return self._model_path
 
     def mousePressEvent(self, event):
+        #点击卡片
         if event.button() == Qt.LeftButton:
             self.clicked.emit(self._model_path)
         super().mousePressEvent(event)

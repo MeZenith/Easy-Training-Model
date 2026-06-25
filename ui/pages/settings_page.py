@@ -1,5 +1,3 @@
-"""系统设置页"""
-
 import logging
 
 from PySide6.QtWidgets import (
@@ -22,6 +20,8 @@ logger = logging.getLogger("EasyTinking")
 
 
 class SettingsPage(QWidget):
+    #系统设置页
+
     def __init__(self, config, i18n, parent=None):
         super().__init__(parent)
         self._config = config
@@ -47,7 +47,7 @@ class SettingsPage(QWidget):
         form = QVBoxLayout(content)
         form.setSpacing(20)
 
-        # 语言设置
+        #语言
         lang_group = QGroupBox()
         lang_form = QFormLayout(lang_group)
         self._lang_combo = QComboBox()
@@ -66,7 +66,7 @@ class SettingsPage(QWidget):
         form.addWidget(lang_group)
         self._lang_group = lang_group
 
-        # 主题设置
+        #主题
         theme_group = QGroupBox()
         theme_form = QFormLayout(theme_group)
         self._theme_combo = QComboBox()
@@ -84,7 +84,7 @@ class SettingsPage(QWidget):
         form.addWidget(theme_group)
         self._theme_group = theme_group
 
-        # 工作目录
+        #工作目录
         ws_group = QGroupBox()
         ws_form = QFormLayout(ws_group)
         ws_row = QHBoxLayout()
@@ -99,7 +99,7 @@ class SettingsPage(QWidget):
         form.addWidget(ws_group)
         self._ws_group = ws_group
 
-        # HuggingFace 镜像
+        #HF镜像
         hf_group = QGroupBox()
         hf_form = QFormLayout(hf_group)
         self._hf_edit = QLineEdit()
@@ -109,7 +109,7 @@ class SettingsPage(QWidget):
         form.addWidget(hf_group)
         self._hf_group = hf_group
 
-        # 代理设置
+        #代理
         proxy_group = QGroupBox()
         proxy_form = QFormLayout(proxy_group)
         self._proxy_http_edit = QLineEdit()
@@ -129,7 +129,7 @@ class SettingsPage(QWidget):
         form.addWidget(proxy_group)
         self._proxy_group = proxy_group
 
-        # 系统信息
+        #系统信息
         sys_group = QGroupBox()
         sys_layout = QVBoxLayout(sys_group)
         self._sys_info_text = QTextEdit()
@@ -168,7 +168,6 @@ class SettingsPage(QWidget):
         if theme:
             self._config.set("theme", theme)
             from PySide6.QtWidgets import QApplication
-
             from ui.theme import ThemeManager
             app = QApplication.instance()
             if app:
@@ -238,7 +237,6 @@ class SettingsPage(QWidget):
         self._proxy_http_label.setText(self._i18n.t("settings.proxy_http") + ":")
         self._proxy_socks5_label.setText(self._i18n.t("settings.proxy_socks5") + ":")
 
-        # Refresh theme combo (preserve selection)
         cur_theme = self._theme_combo.currentData()
         self._theme_combo.blockSignals(True)
         self._theme_combo.clear()
@@ -249,7 +247,6 @@ class SettingsPage(QWidget):
             self._theme_combo.setCurrentIndex(idx)
         self._theme_combo.blockSignals(False)
 
-        # Refresh language combo display names (preserve selection)
         cur_lang = self._lang_combo.currentData()
         self._lang_combo.blockSignals(True)
         self._lang_combo.clear()
