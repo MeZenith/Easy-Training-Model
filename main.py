@@ -9,6 +9,7 @@ from ui.theme import ThemeManager
 from utils.i18n import I18n
 from utils.logger import setup_logger
 
+
 #玄学
 def buddha_bless():
     print(r"""

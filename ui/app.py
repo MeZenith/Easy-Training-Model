@@ -91,13 +91,13 @@ class MainWindow(QMainWindow):
         #调Windows DWM API让Win11窗口变圆角
         try:
             import ctypes
-            DWMWA_WINDOW_CORNER_PREFERENCE = 33
-            DWMWCP_ROUND = 2
+            corner_pref = 33  # DWMWA_WINDOW_CORNER_PREFERENCE
+            round_corners = 2  # DWMWCP_ROUND
             hwnd = int(self.winId())
             ctypes.windll.dwmapi.DwmSetWindowAttribute(
                 hwnd,
-                DWMWA_WINDOW_CORNER_PREFERENCE,
-                ctypes.byref(ctypes.c_int(DWMWCP_ROUND)),
+                corner_pref,
+                ctypes.byref(ctypes.c_int(round_corners)),
                 ctypes.sizeof(ctypes.c_int),
             )
         except Exception:

@@ -168,6 +168,7 @@ class SettingsPage(QWidget):
         if theme:
             self._config.set("theme", theme)
             from PySide6.QtWidgets import QApplication
+
             from ui.theme import ThemeManager
             app = QApplication.instance()
             if app:
