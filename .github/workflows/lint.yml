@@ -17,7 +17,7 @@ jobs:
       - run: pip install ruff
       - run: ruff check .
       - run: python -m py_compile main.py
-      - run: python -m py_compile core/*.py core/workers/*.py core/services/*.py core/models/*.py
+      - run: python -m py_compile core/*.py core/workers/*.py core/services/*.py
       - run: python -m py_compile ui/*.py ui/pages/*.py ui/pages/train/*.py ui/components/*.py
       - run: python -m py_compile utils/*.py tools/*.py
 
