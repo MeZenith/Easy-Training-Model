@@ -1,4 +1,4 @@
-import json
+﻿import json
 import locale as sys_locale
 import logging
 import os

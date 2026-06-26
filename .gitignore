@@ -6,9 +6,12 @@ __pycache__/
 dist/
 build/
 *.spec
+!EasyTinking.spec
 # Workspace - user data (models, training outputs, datasets)
 workspace/
-code-review/
+
+# 非源码文件
+非源码文件/
 
 # IDE
 .vscode/
@@ -27,6 +30,7 @@ env/
 # Generated output
 *.pdf
 *.png
+!res/*.png
 !image/*.png
 loss_*.png
 

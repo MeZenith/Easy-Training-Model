@@ -1,4 +1,4 @@
-import logging
+﻿import logging
 import re
 
 from PySide6.QtCore import QObject, QThread, Signal

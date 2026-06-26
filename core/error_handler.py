@@ -1,4 +1,4 @@
-import logging
+﻿import logging
 from functools import wraps
 
 logger = logging.getLogger("EasyTinking")

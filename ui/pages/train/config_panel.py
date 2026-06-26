@@ -1,4 +1,4 @@
-import logging
+﻿import logging
 import os
 
 from PySide6.QtCore import Qt, Signal

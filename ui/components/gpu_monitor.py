@@ -1,4 +1,4 @@
-import logging
+﻿import logging
 
 from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QProgressBar, QWidget
