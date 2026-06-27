@@ -2,7 +2,7 @@
 import os
 import subprocess
 
-logger = logging.getLogger("EasyTinking")
+logger = logging.getLogger("EasyTraining")
 
 
 class OllamaDeployer:

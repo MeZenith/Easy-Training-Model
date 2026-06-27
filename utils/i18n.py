@@ -5,7 +5,7 @@ import os
 
 from PySide6.QtCore import QObject, Signal
 
-logger = logging.getLogger("EasyTinking")
+logger = logging.getLogger("EasyTraining")
 
 
 class I18n(QObject):

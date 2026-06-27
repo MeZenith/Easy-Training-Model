@@ -5,7 +5,7 @@ import sys
 from PySide6.QtCore import QObject, Signal
 from PySide6.QtWidgets import QApplication
 
-logger = logging.getLogger("EasyTinking")
+logger = logging.getLogger("EasyTraining")
 
 
 def _load_qss(filename: str) -> str:

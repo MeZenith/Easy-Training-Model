@@ -5,7 +5,7 @@ import sys
 import threading
 from copy import deepcopy
 
-logger = logging.getLogger("EasyTinking")
+logger = logging.getLogger("EasyTraining")
 
 _DEFAULT_CONFIG = {
     "language": "zh",

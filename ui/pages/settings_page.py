@@ -16,7 +16,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-logger = logging.getLogger("EasyTinking")
+logger = logging.getLogger("EasyTraining")
 
 
 class SettingsPage(QWidget):

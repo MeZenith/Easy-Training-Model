@@ -27,7 +27,7 @@ from core.data_manager import DataManager
 from core.model_manager import ModelManager
 from ui.components.gpu_monitor import GPUMonitor
 
-logger = logging.getLogger("EasyTinking")
+logger = logging.getLogger("EasyTraining")
 
 
 class TrainConfigPanel(QWidget):

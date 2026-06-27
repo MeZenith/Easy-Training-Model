@@ -13,7 +13,7 @@ from core.trainer import ProcessTrainer
 from ui.pages.train.config_panel import TrainConfigPanel
 from ui.pages.train.monitor_panel import TrainMonitorPanel
 
-logger = logging.getLogger("EasyTinking")
+logger = logging.getLogger("EasyTraining")
 
 
 class TrainPage(QWidget):

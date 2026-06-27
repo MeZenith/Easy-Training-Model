@@ -29,7 +29,7 @@ from core.trainer import ProcessTrainer
 from core.workers.download_worker import DownloadWorker
 from ui.components.model_card import ModelCard
 
-logger = logging.getLogger("EasyTinking")
+logger = logging.getLogger("EasyTraining")
 
 
 class ModelPage(QWidget):

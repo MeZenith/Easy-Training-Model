@@ -6,7 +6,7 @@ __pycache__/
 dist/
 build/
 *.spec
-!EasyTinking.spec
+!EasyTraining.spec
 # Workspace - user data (models, training outputs, datasets)
 workspace/
 

@@ -5,7 +5,7 @@ from PySide6.QtWidgets import QHBoxLayout, QLabel, QProgressBar, QWidget
 
 from utils.gpu_info import get_gpu_info
 
-logger = logging.getLogger("EasyTinking")
+logger = logging.getLogger("EasyTraining")
 
 
 class GPUMonitor(QWidget):

@@ -31,7 +31,7 @@ class LogHandler(QObject):
         self._handler.emit = self._emit_record
         if fmt:
             self._handler.setFormatter(logging.Formatter(fmt, datefmt=datefmt))
-        logger = logging.getLogger("EasyTinking")
+        logger = logging.getLogger("EasyTraining")
         logger.addHandler(self._handler)
 
     def _emit_record(self, record):
@@ -43,7 +43,7 @@ class LogHandler(QObject):
             print(f"LogHandler format error: {e}", file=sys.stderr)
 
     def remove(self):
-        logger = logging.getLogger("EasyTinking")
+        logger = logging.getLogger("EasyTraining")
         logger.removeHandler(self._handler)
 
 

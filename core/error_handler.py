@@ -1,7 +1,7 @@
 ﻿import logging
 from functools import wraps
 
-logger = logging.getLogger("EasyTinking")
+logger = logging.getLogger("EasyTraining")
 
 #错误码到i18n key的映射
 _ERROR_MAP = {

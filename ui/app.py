@@ -32,7 +32,7 @@ from ui.theme import ThemeManager
 from utils.gpu_info import get_gpu_info
 from utils.i18n import I18n
 
-logger = logging.getLogger("EasyTinking")
+logger = logging.getLogger("EasyTraining")
 
 
 #导航项定义
@@ -356,7 +356,7 @@ class MainWindow(QMainWindow):
         self._config.set("window.width", geo.width())
         self._config.set("window.height", geo.height())
         self._config.set("window.maximized", self.isMaximized())
-        logger.info("Easy Tinking closing")
+        logger.info("Easy Training closing")
         super().closeEvent(event)
 
 

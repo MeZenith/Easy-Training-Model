@@ -7,7 +7,7 @@ import torch
 
 from utils.worker import BaseWorker
 
-logger = logging.getLogger("EasyTinking")
+logger = logging.getLogger("EasyTraining")
 
 
 def _hf_to_gguf_name(name: str) -> str:

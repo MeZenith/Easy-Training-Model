@@ -2,7 +2,7 @@
 import os
 import platform
 
-logger = logging.getLogger("EasyTinking")
+logger = logging.getLogger("EasyTraining")
 
 
 def get_system_info() -> dict:

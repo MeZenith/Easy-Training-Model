@@ -8,7 +8,7 @@ from PySide6.QtCore import QObject, QProcess, QProcessEnvironment, Signal
 
 from utils.worker import read_process_lines
 
-logger = logging.getLogger("EasyTinking")
+logger = logging.getLogger("EasyTraining")
 
 
 class Inferencer(QObject):
@@ -51,13 +51,13 @@ class Inferencer(QObject):
         with os.fdopen(fd, "w", encoding="utf-8") as f:
             json.dump(cfg, f, ensure_ascii=False)
 
-        worker_path = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)), "infer_worker.py"
-        )
-        self._proc.start(
-            sys.executable,
-            [worker_path, "--config", self._cfg]
-        )
+        if getattr(sys, "frozen", False):
+            self._proc.start(sys.executable, ["--worker", "infer", "--config", self._cfg])
+        else:
+            worker_path = os.path.join(
+                os.path.dirname(os.path.abspath(__file__)), "infer_worker.py"
+            )
+            self._proc.start(sys.executable, [worker_path, "--config", self._cfg])
         logger.info(f"Inferencer process started (PID: {self._proc.processId()})")
 
     def generate(self, messages: list, params: dict):

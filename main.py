@@ -54,7 +54,7 @@ def load_config():
 #初始化日志
 def init_log(config):
     logger = setup_logger(config.workspace)
-    logger.info("Easy Tinking starting...")
+    logger.info("Easy Training starting...")
     return logger
 
 #初始化国际化
@@ -70,7 +70,7 @@ def init_i18n(config):
 #创建Qt应用
 def make_app():
     app = QApplication(sys.argv)
-    app.setApplicationName("Easy Tinking")
+    app.setApplicationName("Easy Training")
     app.setOrganizationName("BlueCornerStudio")
     set_window_icon(app)
     return app
@@ -121,11 +121,28 @@ def main():
     if os.path.isfile(splash_path):
         splash.finish(window)
 
-    logger.info("Easy Tinking started successfully")
+    logger.info("Easy Training started successfully")
     exit_code = app.exec()
-    logger.info("Easy Tinking shutting down...")
+    logger.info("Easy Training shutting down...")
     sys.exit(exit_code)
 
 
 if __name__ == "__main__":
+    #frozen环境子进程路由 — 打包后exe通过--worker标记启动worker逻辑
+    if len(sys.argv) >= 3 and sys.argv[1] == "--worker":
+        worker_type = sys.argv[2]
+        config_path = sys.argv[sys.argv.index("--config") + 1] if "--config" in sys.argv else ""
+        if worker_type == "train":
+            from core.train_worker import main as train_main
+            sys.argv = [sys.argv[0], "--config", config_path]
+            train_main()
+        elif worker_type == "infer":
+            from core.infer_worker import main as infer_main
+            sys.argv = [sys.argv[0], "--config", config_path]
+            infer_main()
+        elif worker_type == "export":
+            from core.workers.export_worker import main as export_main
+            sys.argv = [sys.argv[0], "--config", config_path]
+            export_main()
+        sys.exit(0)
     main()

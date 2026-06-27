@@ -26,12 +26,11 @@ from PySide6.QtWidgets import (
 
 from core.exporter import Exporter
 from core.exporter_process import ProcessExporter
-from core.model_manager import ModelManager
 from core.ollama_deployer import OllamaDeployer
 from core.services.export_service import detect_format, find_gguf, find_safetensors_dir
 from core.services.train_service import list_loras_for_combo
 
-logger = logging.getLogger("EasyTinking")
+logger = logging.getLogger("EasyTraining")
 
 
 class _DeployWorker(QThread):
@@ -75,7 +74,6 @@ class ExportPage(QWidget):
             config.set("export_dir", export_dir)
         self._exporter = Exporter(export_dir)
         self._deployer = OllamaDeployer()
-        self._models_dir = config.get("download_dir", os.path.join(config.workspace, "models"))
 
         self._setup_ui()
         self._connect_signals()
@@ -111,11 +109,6 @@ class ExportPage(QWidget):
         #配置区
         g = QGroupBox()
         f = QFormLayout(g)
-        self._model_combo = QComboBox()
-        self._model_combo.setMinimumWidth(200)
-        self._model_label = QLabel()
-        f.addRow(self._model_label, self._model_combo)
-
         self._lora_combo = QComboBox()
         self._lora_label = QLabel()
         f.addRow(self._lora_label, self._lora_combo)
@@ -279,12 +272,6 @@ class ExportPage(QWidget):
         self._ollama_delete_btn.clicked.connect(self._delete_ollama_model)
         self._ollama_run_btn.clicked.connect(self._on_run_ollama)
 
-    def _load_models(self):
-        self._model_combo.clear()
-        mgr = ModelManager(self._models_dir)
-        for m in mgr.list_downloaded_models():
-            self._model_combo.addItem(m["name"], userData=m["path"])
-
     def _load_loras(self):
         self._lora_combo.clear()
         loras = list_loras_for_combo(self._config.workspace)
@@ -304,9 +291,16 @@ class ExportPage(QWidget):
     def _on_export(self):
         #开始导出
         t = self._i18n.t
-        model_path = self._model_combo.currentData()
-        if not model_path:
+
+        lora_data = self._lora_combo.currentData() or {}
+        lora_path = lora_data.get("lora_path", "")
+        model_path = lora_data.get("model_path", "")
+
+        if not lora_path:
             QMessageBox.warning(self, t("common.warning"), t("export.select_model"))
+            return
+        if not model_path:
+            QMessageBox.warning(self, t("common.warning"), t("error.no_model"))
             return
 
         export_name = self._name_edit.text().strip() or "exported_model"
@@ -328,11 +322,6 @@ class ExportPage(QWidget):
             QMessageBox.warning(self, t("common.warning"), t("export.select_format"))
             return
 
-        lora_data = self._lora_combo.currentData() or {}
-        lora_path = lora_data.get("lora_path", "")
-        lora_model = lora_data.get("model_path", "")
-        if lora_path and lora_model:
-            model_path = lora_model
         export_dir = self._dir_edit.text()
 
         self._export_btn.setEnabled(False)
@@ -562,7 +551,6 @@ class ExportPage(QWidget):
         t = self._i18n.t
         self._title_label.setText(t("nav.export"))
         self._cfg_group.setTitle(t("export.lora_adapter"))
-        self._model_label.setText(t("export.base_model") + ":")
         self._lora_label.setText(t("train.lora_path") + ":")
         self._dir_label.setText(t("export.dir") + ":")
         self._name_label.setText(t("export.name") + ":")
@@ -597,7 +585,6 @@ class ExportPage(QWidget):
 
     def showEvent(self, event):
         super().showEvent(event)
-        self._load_models()
         self._load_loras()
         self._refresh_exports_list()
         self._refresh_export_selector()

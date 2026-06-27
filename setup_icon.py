@@ -3,9 +3,9 @@ import os
 import sys
 from pathlib import Path
 
-logger = logging.getLogger("EasyTinking")
+logger = logging.getLogger("EasyTraining")
 
-APP_NAME = "EasyTinking"
+APP_NAME = "EasyTraining"
 COMPANY = "BlueCornerStudio"
 VERSION = "1.0"
 ICON_FILE = "icon.ico"

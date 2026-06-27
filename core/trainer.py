@@ -8,7 +8,7 @@ from PySide6.QtCore import QObject, QProcess, Signal
 
 from utils.worker import clean_name, read_process_lines
 
-logger = logging.getLogger("EasyTinking")
+logger = logging.getLogger("EasyTraining")
 
 
 class ProcessTrainer(QObject):
@@ -52,13 +52,14 @@ class ProcessTrainer(QObject):
         self._proc.finished.connect(self._on_done)
         self._proc.setProcessChannelMode(QProcess.MergedChannels)
 
-        worker_path = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)), "train_worker.py"
-        )
-        self._proc.start(
-            sys.executable,
-            [worker_path, "--config", self._cfg]
-        )
+        if getattr(sys, "frozen", False):
+            #打包后exe自己就是python，--worker train切到训练逻辑
+            self._proc.start(sys.executable, ["--worker", "train", "--config", self._cfg])
+        else:
+            worker_path = os.path.join(
+                os.path.dirname(os.path.abspath(__file__)), "train_worker.py"
+            )
+            self._proc.start(sys.executable, [worker_path, "--config", self._cfg])
         logger.info(f"Training process started (PID: {self._proc.processId()})")
 
     def stop_training(self):

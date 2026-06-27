@@ -3,7 +3,7 @@ import re
 
 from PySide6.QtCore import QObject, QThread, Signal
 
-logger = logging.getLogger("EasyTinking")
+logger = logging.getLogger("EasyTraining")
 
 
 #清理文件名，去掉不安全字符

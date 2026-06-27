@@ -4,7 +4,7 @@ import os
 import time
 from typing import Optional
 
-logger = logging.getLogger("EasyTinking")
+logger = logging.getLogger("EasyTraining")
 
 #内置模型列表
 BUILTIN_MODELS = [

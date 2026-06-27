@@ -1,0 +1,1 @@
+& "C:\InnoSetup\ISCC.exe" EasyTraining.spec

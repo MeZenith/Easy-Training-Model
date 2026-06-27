@@ -7,7 +7,7 @@ from typing import Optional
 
 from utils.worker import clean_name
 
-logger = logging.getLogger("EasyTinking")
+logger = logging.getLogger("EasyTraining")
 
 #单条数据必须要有的字段
 REQUIRED_FIELDS = ["instruction", "output"]

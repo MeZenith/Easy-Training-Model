@@ -7,7 +7,7 @@ import tempfile
 
 from PySide6.QtCore import QObject, QThread, Signal
 
-logger = logging.getLogger("EasyTinking")
+logger = logging.getLogger("EasyTraining")
 
 
 class _ReaderThread(QThread):
@@ -134,12 +134,20 @@ class ProcessExporter(QObject):
 
         #启动子进程
         try:
-            self._proc = subprocess.Popen(
-                [sys.executable, worker_path, "--config", config_path],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                env=env,
-            )
+            if getattr(sys, "frozen", False):
+                self._proc = subprocess.Popen(
+                    [sys.executable, "--worker", "export", "--config", config_path],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    env=env,
+                )
+            else:
+                self._proc = subprocess.Popen(
+                    [sys.executable, worker_path, "--config", config_path],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    env=env,
+                )
         except OSError as e:
             logger.error("Failed to start export subprocess: %s", e)
             self.error.emit("ERR_START", f"无法启动导出进程: {e}")
