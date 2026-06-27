@@ -1,1 +1,0 @@
-FROM "C:\\Users\\Admin\\test.gguf"

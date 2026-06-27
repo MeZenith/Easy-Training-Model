@@ -217,6 +217,21 @@ pyinstaller EasyTraining.spec
 # 产物在 dist\EasyTraining_Setup.exe
 ```
 
+## 参与贡献
+
+欢迎你一起来完善这个项目！无论你是修复 bug、优化 UI、改进文档还是添加新功能，都非常欢迎。
+
+**如何参与**：
+1. Fork 本仓库
+2. 创建你的功能分支 (`git checkout -b feature/你的功能`)
+3. 提交你的改动 (`git commit -m '添加了某个功能'`)
+4. 推送到你的分支 (`git push origin feature/你的功能`)
+5. 发起 Pull Request
+
+**开发环境**：参考上面的"快速开始"章节。运行 `ruff check .` 确保代码风格一致。
+
+**功能建议**：如果你有一个好的想法但不会写代码，直接提 [Issue](https://github.com/MeZenith/Easy-Training-Model/issues) 讨论也可以。
+
 ## 许可证
 
 本软件采用 **CC BY-NC 4.0** 许可证：
