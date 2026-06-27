@@ -25,6 +25,20 @@ Built with PySide6 + PyTorch + PEFT (LoRA) · Subprocess-isolated CUDA · Chines
 |:---:|
 | ![](image/%E8%AE%BE%E7%BD%AE%E7%95%8C%E9%9D%A2.png) |
 
+## Why This Tool Exists
+
+Large language models are everywhere, but fine-tuning them for specific use cases remains inaccessible to most people. The traditional workflow — configuring Linux CUDA environments, writing Python training scripts, manually managing LoRA adapters, using command-line tools to export and merge models — is a barrier at every step. Many people who could benefit from a custom AI model can't build one simply because they don't write training code.
+
+Easy Training removes these barriers by turning the entire workflow into a desktop application: **use PyTorch like you use Word**. Point, click, and go from downloading a base model to deploying a finished product — without ever touching a terminal.
+
+## Design Philosophy
+
+- **Zero Code**: No Python, no Linux, no command line required. If you can operate a computer, you can train AI
+- **Subprocess Isolation**: Training, inference, and export run in independent subprocesses, completely isolated from the main UI. This solves the Windows CUDA + Qt GUI thread crash issue (`0xC0000005`) and ensures the main application stays stable even if a training job fails
+- **Lightweight Dependencies**: The training loop is implemented entirely in native PyTorch, without trl, datasets, accelerate, or any third-party training frameworks. Less code, better compatibility, and more control
+- **Local First**: All data and models stay on your computer. No cloud uploads required — you control your privacy and security
+- **Real-World Driven**: Every feature comes from a real pain point — the VRAM estimator's dynamic formula from trial-and-error parameter tuning, LoRA metadata recording from the need to auto-match base models during export
+
 ## Who is this for
 
 - **Full-stack developers** who want a personal AI assistant without learning deep learning
@@ -190,6 +204,21 @@ pyinstaller EasyTraining.spec
 
 # Output: dist\EasyTraining_Setup.exe
 ```
+
+## Contributing
+
+We welcome contributions! Whether you're fixing bugs, improving the UI, updating documentation, or adding new features — all help is appreciated.
+
+**How to contribute**:
+1. Fork this repository
+2. Create your feature branch (`git checkout -b feature/my-feature`)
+3. Commit your changes (`git commit -m 'Add some feature'`)
+4. Push to your branch (`git push origin feature/my-feature`)
+5. Open a Pull Request
+
+**Development setup**: Follow the Quick Start section above. Run `ruff check .` to keep code style consistent.
+
+**Feature ideas**: If you have a great idea but don't code, just open an [Issue](https://github.com/MeZenith/Easy-Training-Model/issues).
 
 ## License
 
